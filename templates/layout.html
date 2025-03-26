@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Sistema de Pedidos</title>
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <nav class="bg-blue-600 text-white p-4 mb-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold">RestoPedidos</a>
+            <div>
+                <a href="/tables" class="mr-4 hover:underline">Mesas</a>
+                <a href="/menu" class="hover:underline">Menú</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4">
+        {{template "content" .}}
+    </div>
+
+    <footer class="bg-gray-200 p-4 mt-8 text-center text-gray-600">
+        <p>Sistema de Pedidos para Restaurante &copy; 2025</p>
+    </footer>
+</body>
+
+</html>

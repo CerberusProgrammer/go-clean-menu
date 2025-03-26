@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Servicio de la aplicación
+  app:
+    build: .
+    container_name: resto-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=go_clean_menu
+      - PORT=3000
+    restart: always
+    command: sh -c "./wait-for-postgres.sh db && ./app"
+    networks:
+      - resto-network
+  
+  # Servicio de base de datos
+  db:
+    image: postgres:15-alpine
+    container_name: resto-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=go_clean_menu
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - resto-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  resto-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
