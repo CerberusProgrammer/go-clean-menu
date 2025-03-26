@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -19,13 +22,86 @@ func NewHandlers(db *gorm.DB) *Handlers {
 
 // Home muestra la página principal
 func (h *Handlers) Home(c *fiber.Ctx) error {
-	return c.Render("tables", fiber.Map{
-		"Title": "Mesas",
+	c.Set("Content-Type", "text/html")
+
+	// Redirect to tables page instead of rendering incomplete template
+	return c.Redirect("/tables")
+}
+
+func (h *Handlers) DebugTest(c *fiber.Ctx) error {
+	// Return simple inline HTML to test basic rendering
+	c.Set("Content-Type", "text/html")
+
+	return c.Status(200).SendString(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Debug Page</title>
+            <style>
+                body { font-family: Arial; background-color: #f0f0f0; padding: 20px; }
+                .debug-box { background-color: white; border: 2px solid #333; padding: 15px; margin: 10px 0; }
+            </style>
+        </head>
+        <body>
+            <h1>Debug Test Page</h1>
+            <div class="debug-box">
+                <p>If you can see this, HTML rendering is working correctly.</p>
+                <p>Current time: ` + time.Now().Format("2006-01-02 15:04:05") + `</p>
+            </div>
+            <div class="debug-box">
+                <p>Browser information:</p>
+                <pre>` + c.Get("User-Agent") + `</pre>
+            </div>
+            <script>
+                console.log("Debug page JavaScript executed");
+                document.body.innerHTML += '<div class="debug-box"><p>JavaScript is working!</p></div>';
+            </script>
+        </body>
+        </html>
+    `)
+}
+
+// Add this function to your handlers.go file
+
+// Debug shows a debug page with system information
+func (h *Handlers) Debug(c *fiber.Ctx) error {
+
+	var tablesCount int64
+	h.DB.Model(&Table{}).Count(&tablesCount)
+
+	// Get request headers
+	headers := make(map[string]string)
+	c.Request().Header.VisitAll(func(key, value []byte) {
+		headers[string(key)] = string(value)
+	})
+
+	debugInfo := fmt.Sprintf(
+		"Go Version: %s\n"+
+			"Fiber Version: %s\n"+
+			"Headers: %v\n"+
+			"Query Params: %v\n",
+		runtime.Version(),
+		fiber.Version,
+		headers,
+		c.Queries(),
+	)
+
+	return c.Render("debug", fiber.Map{
+		"Title":       "Debug Info",
+		"Timestamp":   time.Now().Format(time.RFC3339),
+		"DebugInfo":   debugInfo,
+		"TablesCount": tablesCount,
 	})
 }
 
+// Add the route to main.go
+// app.Get("/system-debug", h.Debug)
+
 // GetTables obtiene todas las mesas
 func (h *Handlers) GetTables(c *fiber.Ctx) error {
+	c.Set("Content-Type", "text/html")
+
 	var tables []Table
 	if err := h.DB.Find(&tables).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

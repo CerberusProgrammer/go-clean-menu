@@ -64,8 +64,9 @@ func main() {
 		log.Fatalf("Error al cargar datos iniciales: %v", err)
 	}
 
-	// Configurar motor de plantillas
 	engine := html.New("./templates", ".html")
+	engine.Reload(true) // Enable reloading in development
+	engine.Debug(true)  // Enable debug output
 
 	// Agregar funciones personalizadas para las plantillas
 	engine.AddFunc("add", func(a, b int) int {
@@ -105,6 +106,8 @@ func main() {
 	app.Post("/order/item/:id", h.UpdateOrderItem)
 	app.Post("/order/complete/:id", h.CompleteOrder)
 	app.Post("/order/cancel/:id", h.CancelOrder)
+	app.Get("/debug", h.DebugTest)
+	app.Get("/system-debug", h.Debug)
 
 	// Iniciar servidor
 	port := getEnv("PORT", "3000")

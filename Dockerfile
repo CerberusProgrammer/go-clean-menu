@@ -14,20 +14,21 @@ COPY . .
 
 # Compilar la aplicación
 RUN go build -o app .
+RUN chmod +x app
 
 # Imagen final más pequeña
 FROM alpine:latest
 
 WORKDIR /app
 
-# Instalar dependencias necesarias
-RUN apk add --no-cache tzdata ca-certificates
+# Instalar dependencias necesarias incluyendo postgresql-client
+RUN apk add --no-cache tzdata ca-certificates postgresql-client
 
 # Copiar binario compilado desde el builder
 COPY --from=builder /app/app .
 
 # Copiar plantillas y scripts
-COPY --from=builder /app/templates ./templates
+COPY templates /app/templates
 
 # Agregar script para esperar PostgreSQL
 COPY wait-for-postgres.sh .

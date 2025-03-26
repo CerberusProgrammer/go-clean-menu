@@ -1,0 +1,46 @@
+{{define "content"}}
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold">System Debug</h1>
+
+    <div class="mt-4 p-4 bg-gray-100 rounded-md">
+        <h2 class="text-xl mb-2">Template Rendering Test</h2>
+        <p>If you can see this text, templates are rendering correctly.</p>
+        <p>Current timestamp: {{.Timestamp}}</p>
+    </div>
+
+    <div class="mt-4 p-4 bg-gray-100 rounded-md">
+        <h2 class="text-xl mb-2">Variables Test</h2>
+        <pre class="bg-black text-white p-4 rounded-md overflow-auto">{{.DebugInfo}}</pre>
+    </div>
+
+    <div class="mt-4 p-4 bg-gray-100 rounded-md">
+        <h2 class="text-xl mb-2">Database Test</h2>
+        <p>Tables in database: {{.TablesCount}}</p>
+    </div>
+
+    <div class="mt-4 p-4 bg-gray-100 rounded-md">
+        <h2 class="text-xl mb-2">Navigation Links</h2>
+        <ul class="list-disc ml-6">
+            <li><a href="/" class="text-blue-500 hover:text-blue-700">Home</a></li>
+            <li><a href="/tables" class="text-blue-500 hover:text-blue-700">Tables</a></li>
+            <li><a href="/menu" class="text-blue-500 hover:text-blue-700">Menu</a></li>
+        </ul>
+    </div>
+
+    <div class="mt-4">
+        <button id="testJsBtn" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+            Test JavaScript
+        </button>
+        <div id="jsTestResult" class="mt-2"></div>
+    </div>
+</div>
+
+<script>
+    console.log("Debug page loaded");
+    document.getElementById("testJsBtn").addEventListener("click", function () {
+        document.getElementById("jsTestResult").innerHTML =
+            '<div class="bg-green-100 p-3 rounded-md">JavaScript is working correctly! ' +
+            'Timestamp: ' + new Date().toISOString() + '</div>';
+    });
+</script>
+{{end}}
