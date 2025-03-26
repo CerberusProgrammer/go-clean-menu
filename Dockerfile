@@ -29,6 +29,7 @@ COPY --from=builder /app/app .
 
 # Copiar plantillas y scripts
 COPY templates /app/templates
+COPY .env /app/.env
 
 # Agregar script para esperar PostgreSQL
 COPY wait-for-postgres.sh .

@@ -20,6 +20,116 @@ func NewHandlers(db *gorm.DB) *Handlers {
 	return &Handlers{DB: db}
 }
 
+// Add this to handlers.go
+func (h *Handlers) DirectTableTest(c *fiber.Ctx) error {
+	c.Set("Content-Type", "text/html")
+
+	var tables []Table
+	if err := h.DB.Find(&tables).Error; err != nil {
+		return c.SendString("Error: " + err.Error())
+	}
+
+	// Build HTML manually
+	html := `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Direct Tables Test</title>
+        <style>
+            body { font-family: Arial; background-color: #f0f0f0; padding: 20px; }
+            .table-card { background-color: white; border: 1px solid #ccc; padding: 15px; margin: 10px 0; }
+            .available { background-color: #d1fae5; }
+            .occupied { background-color: #fee2e2; }
+        </style>
+    </head>
+    <body>
+        <h1>Mesas Disponibles (Vista Directa)</h1>
+        <div id="tables">`
+
+	// Add tables
+	for _, table := range tables {
+		statusClass := "available"
+		statusText := "Disponible"
+		if !table.Available {
+			statusClass = "occupied"
+			statusText = "Ocupada"
+		}
+
+		html += fmt.Sprintf(`
+        <div class="table-card %s">
+            <h2>Mesa %d</h2>
+            <p>Capacidad: %d personas</p>
+            <p>Estado: %s</p>
+        </div>`, statusClass, table.Number, table.Capacity, statusText)
+	}
+
+	html += `
+        </div>
+    </body>
+    </html>`
+
+	return c.SendString(html)
+}
+
+// UltraDebug provides maximum debugging information
+func (h *Handlers) UltraDebug(c *fiber.Ctx) error {
+	c.Set("Content-Type", "text/html")
+
+	// Test direct HTML rendering
+	html := `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Debug Page</title>
+    </head>
+    <body>
+        <h1>Ultra Debug - Part 1: Direct HTML</h1>
+        <p>If you can see this, direct HTML rendering works.</p>
+        <hr>
+        
+        <h1>Ultra Debug - Part 2: Template Analysis</h1>
+        <pre style="background: #eee; padding: 10px; border: 1px solid #ccc;">
+Layout.html first line: ".html -->"
+Layout.html has problem: missing body content
+        </pre>
+        <hr>
+        
+        <h1>Ultra Debug - Part 3: Template Content</h1>
+        <div id="template-test" style="border: 1px dashed red; padding: 10px; margin: 10px 0;">
+            <p>Template rendering will appear below:</p>
+        </div>
+        
+        <script>
+            console.log("Ultra Debug Script loaded");
+            document.getElementById('template-test').innerHTML += '<p>JavaScript is working</p>';
+        </script>
+    </body>
+    </html>
+    `
+
+	return c.SendString(html)
+}
+
+// TestTemplate tests simplified template rendering
+func (h *Handlers) TestTemplate(c *fiber.Ctx) error {
+	c.Set("Content-Type", "text/html")
+
+	// Create extremely simple test template
+	return c.Send([]byte(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Basic Template Test</title>
+    </head>
+    <body>
+        <h1>Basic Template Test</h1>
+        <p>This is a simple HTML page without any template logic.</p>
+    </body>
+    </html>
+    `))
+}
+
 // Home muestra la página principal
 func (h *Handlers) Home(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/html")
@@ -62,10 +172,9 @@ func (h *Handlers) DebugTest(c *fiber.Ctx) error {
     `)
 }
 
-// Add this function to your handlers.go file
-
-// Debug shows a debug page with system information
 func (h *Handlers) Debug(c *fiber.Ctx) error {
+	// Set content type explicitly
+	c.Set("Content-Type", "text/html")
 
 	var tablesCount int64
 	h.DB.Model(&Table{}).Count(&tablesCount)

@@ -108,7 +108,10 @@ func main() {
 	app.Post("/order/cancel/:id", h.CancelOrder)
 	app.Get("/debug", h.DebugTest)
 	app.Get("/system-debug", h.Debug)
-
+	app.Get("/direct-tables", h.DirectTableTest)
+	// Add these routes after your existing routes
+	app.Get("/ultra-debug", h.UltraDebug)
+	app.Get("/test-template", h.TestTemplate)
 	// Iniciar servidor
 	port := getEnv("PORT", "3000")
 	log.Printf("Servidor iniciado en http://localhost:%s", port)
