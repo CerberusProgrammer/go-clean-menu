@@ -1,0 +1,24 @@
+<div class="row">
+    {{if .Products}}
+    {{range .Products}}
+    <div class="col-md-6 mb-3">
+        <div class="card product-card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{.Name}}</h5>
+                <p class="card-text">{{.Description}}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong class="text-primary">${{printf "%.2f" .Price}}</strong>
+                    <span class="badge bg-secondary">{{.Category}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="col-12">
+        <div class="alert alert-info">
+            No hay productos disponibles en esta categoría.
+        </div>
+    </div>
+    {{end}}
+</div>

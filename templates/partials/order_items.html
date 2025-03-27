@@ -1,0 +1,31 @@
+{{if .Order.Items}}
+<ul class="list-group">
+    {{range .Order.Items}}
+    <li class="list-group-item d-flex justify-content-between align-items-center order-item">
+        <div>
+            <h5 class="mb-1">{{.Product.Name}} x {{.Quantity}}</h5>
+            <p class="mb-1 text-muted small">{{.Product.Description}}</p>
+            {{if .Notes}}
+            <small class="text-primary">Nota: {{.Notes}}</small>
+            {{end}}
+        </div>
+        <div class="d-flex flex-column align-items-end">
+            <span class="mb-2">${{printf "%.2f" (multiply .Product.Price .Quantity)}}</span>
+            {{if ne $.Order.Status "completed"}}
+            <button class="btn btn-sm btn-danger" hx-delete="/order/{{$.Order.ID}}/item/{{.ID}}"
+                hx-target="#order-items" hx-confirm="¿Eliminar este producto de la orden?">
+                Eliminar
+            </button>
+            {{end}}
+        </div>
+    </li>
+    {{end}}
+</ul>
+<div class="mt-3 text-end">
+    <h4>Total: ${{printf "%.2f" .Order.Total}}</h4>
+</div>
+{{else}}
+<div class="alert alert-info">
+    No hay productos en esta orden aún.
+</div>
+{{end}}

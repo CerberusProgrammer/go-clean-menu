@@ -1,0 +1,45 @@
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Menú</h2>
+        <div class="mb-3">
+            <button class="btn btn-primary me-2" hx-get="/products" hx-target="#product-list">
+                Todos
+            </button>
+            <button class="btn btn-outline-primary me-2" hx-get="/products/category/Hamburguesas"
+                hx-target="#product-list">
+                Hamburguesas
+            </button>
+            <button class="btn btn-outline-primary me-2" hx-get="/products/category/Pizzas" hx-target="#product-list">
+                Pizzas
+            </button>
+            <button class="btn btn-outline-primary me-2" hx-get="/products/category/Ensaladas"
+                hx-target="#product-list">
+                Ensaladas
+            </button>
+            <button class="btn btn-outline-primary me-2" hx-get="/products/category/Acompañamientos"
+                hx-target="#product-list">
+                Acompañamientos
+            </button>
+            <button class="btn btn-outline-primary" hx-get="/products/category/Bebidas" hx-target="#product-list">
+                Bebidas
+            </button>
+        </div>
+        <div id="product-list" hx-get="/products" hx-trigger="load"></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0">Nueva Orden</h3>
+            </div>
+            <div class="card-body">
+                <form hx-post="/orders" hx-redirect="true">
+                    <div class="mb-3">
+                        <label for="table_num" class="form-label">Número de Mesa</label>
+                        <input type="number" class="form-control" id="table_num" name="table_num" min="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Crear Orden</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

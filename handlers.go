@@ -1,350 +1,110 @@
 package main
 
 import (
-	"fmt"
-	"runtime"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
-// Handlers estructura para los manejadores
-type Handlers struct {
-	DB *gorm.DB
-}
-
-// NewHandlers crea una nueva instancia de Handlers
-func NewHandlers(db *gorm.DB) *Handlers {
-	return &Handlers{DB: db}
-}
-
-// Add this to handlers.go
-func (h *Handlers) DirectTableTest(c *fiber.Ctx) error {
-	c.Set("Content-Type", "text/html")
-
-	var tables []Table
-	if err := h.DB.Find(&tables).Error; err != nil {
-		return c.SendString("Error: " + err.Error())
-	}
-
-	// Build HTML manually
-	html := `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Direct Tables Test</title>
-        <style>
-            body { font-family: Arial; background-color: #f0f0f0; padding: 20px; }
-            .table-card { background-color: white; border: 1px solid #ccc; padding: 15px; margin: 10px 0; }
-            .available { background-color: #d1fae5; }
-            .occupied { background-color: #fee2e2; }
-        </style>
-    </head>
-    <body>
-        <h1>Mesas Disponibles (Vista Directa)</h1>
-        <div id="tables">`
-
-	// Add tables
-	for _, table := range tables {
-		statusClass := "available"
-		statusText := "Disponible"
-		if !table.Available {
-			statusClass = "occupied"
-			statusText = "Ocupada"
-		}
-
-		html += fmt.Sprintf(`
-        <div class="table-card %s">
-            <h2>Mesa %d</h2>
-            <p>Capacidad: %d personas</p>
-            <p>Estado: %s</p>
-        </div>`, statusClass, table.Number, table.Capacity, statusText)
-	}
-
-	html += `
-        </div>
-    </body>
-    </html>`
-
-	return c.SendString(html)
-}
-
-// UltraDebug provides maximum debugging information
-func (h *Handlers) UltraDebug(c *fiber.Ctx) error {
-	c.Set("Content-Type", "text/html")
-
-	// Test direct HTML rendering
-	html := `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Debug Page</title>
-    </head>
-    <body>
-        <h1>Ultra Debug - Part 1: Direct HTML</h1>
-        <p>If you can see this, direct HTML rendering works.</p>
-        <hr>
-        
-        <h1>Ultra Debug - Part 2: Template Analysis</h1>
-        <pre style="background: #eee; padding: 10px; border: 1px solid #ccc;">
-Layout.html first line: ".html -->"
-Layout.html has problem: missing body content
-        </pre>
-        <hr>
-        
-        <h1>Ultra Debug - Part 3: Template Content</h1>
-        <div id="template-test" style="border: 1px dashed red; padding: 10px; margin: 10px 0;">
-            <p>Template rendering will appear below:</p>
-        </div>
-        
-        <script>
-            console.log("Ultra Debug Script loaded");
-            document.getElementById('template-test').innerHTML += '<p>JavaScript is working</p>';
-        </script>
-    </body>
-    </html>
-    `
-
-	return c.SendString(html)
-}
-
-// TestTemplate tests simplified template rendering
-func (h *Handlers) TestTemplate(c *fiber.Ctx) error {
-	c.Set("Content-Type", "text/html")
-
-	// Create extremely simple test template
-	return c.Send([]byte(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Basic Template Test</title>
-    </head>
-    <body>
-        <h1>Basic Template Test</h1>
-        <p>This is a simple HTML page without any template logic.</p>
-    </body>
-    </html>
-    `))
-}
-
-// Home muestra la página principal
-func (h *Handlers) Home(c *fiber.Ctx) error {
-	c.Set("Content-Type", "text/html")
-
-	// Redirect to tables page instead of rendering incomplete template
-	return c.Redirect("/tables")
-}
-
-func (h *Handlers) DebugTest(c *fiber.Ctx) error {
-	// Return simple inline HTML to test basic rendering
-	c.Set("Content-Type", "text/html")
-
-	return c.Status(200).SendString(`
-        <!DOCTYPE html>
-        <html lang="es">
-        <head>
-            <meta charset="UTF-8">
-            <title>Debug Page</title>
-            <style>
-                body { font-family: Arial; background-color: #f0f0f0; padding: 20px; }
-                .debug-box { background-color: white; border: 2px solid #333; padding: 15px; margin: 10px 0; }
-            </style>
-        </head>
-        <body>
-            <h1>Debug Test Page</h1>
-            <div class="debug-box">
-                <p>If you can see this, HTML rendering is working correctly.</p>
-                <p>Current time: ` + time.Now().Format("2006-01-02 15:04:05") + `</p>
-            </div>
-            <div class="debug-box">
-                <p>Browser information:</p>
-                <pre>` + c.Get("User-Agent") + `</pre>
-            </div>
-            <script>
-                console.log("Debug page JavaScript executed");
-                document.body.innerHTML += '<div class="debug-box"><p>JavaScript is working!</p></div>';
-            </script>
-        </body>
-        </html>
-    `)
-}
-
-func (h *Handlers) Debug(c *fiber.Ctx) error {
-	// Set content type explicitly
-	c.Set("Content-Type", "text/html")
-
-	var tablesCount int64
-	h.DB.Model(&Table{}).Count(&tablesCount)
-
-	// Get request headers
-	headers := make(map[string]string)
-	c.Request().Header.VisitAll(func(key, value []byte) {
-		headers[string(key)] = string(value)
-	})
-
-	debugInfo := fmt.Sprintf(
-		"Go Version: %s\n"+
-			"Fiber Version: %s\n"+
-			"Headers: %v\n"+
-			"Query Params: %v\n",
-		runtime.Version(),
-		fiber.Version,
-		headers,
-		c.Queries(),
-	)
-
-	return c.Render("debug", fiber.Map{
-		"Title":       "Debug Info",
-		"Timestamp":   time.Now().Format(time.RFC3339),
-		"DebugInfo":   debugInfo,
-		"TablesCount": tablesCount,
+// HomeHandler muestra la página principal
+func HomeHandler(c *fiber.Ctx) error {
+	return c.Render("index", fiber.Map{
+		"Title": "Menú de Restaurante",
 	})
 }
 
-// Add the route to main.go
-// app.Get("/system-debug", h.Debug)
-
-// GetTables obtiene todas las mesas
-func (h *Handlers) GetTables(c *fiber.Ctx) error {
-	c.Set("Content-Type", "text/html")
-
-	var tables []Table
-	if err := h.DB.Find(&tables).Error; err != nil {
+// GetProducts obtiene todos los productos del menú
+func GetProducts(c *fiber.Ctx) error {
+	var products []Product
+	result := db.Order("category, name").Find(&products)
+	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al obtener las mesas",
+			"error": "Error al obtener productos",
 		})
 	}
 
-	return c.Render("tables", fiber.Map{
-		"Title":  "Mesas",
-		"Tables": tables,
-	})
-}
-
-// GetMenu obtiene todos los items del menú
-func (h *Handlers) GetMenu(c *fiber.Ctx) error {
-	var menuItems []MenuItem
-	if err := h.DB.Find(&menuItems).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al obtener el menú",
+	// Si es una solicitud HTMX, renderiza parcial
+	if c.Get("HX-Request") == "true" {
+		return c.Render("partials/product_list", fiber.Map{
+			"Products": products,
 		})
 	}
 
-	// Agrupar por categoría
-	categories := make(map[string][]MenuItem)
-	for _, item := range menuItems {
-		if item.Available {
-			categories[item.Category] = append(categories[item.Category], item)
-		}
+	return c.JSON(products)
+}
+
+// GetProductsByCategory obtiene productos filtrados por categoría
+func GetProductsByCategory(c *fiber.Ctx) error {
+	category := c.Params("category")
+
+	var products []Product
+	result := db.Where("category = ?", category).Order("name").Find(&products)
+	if result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error al obtener productos",
+		})
 	}
 
-	tableID := c.Query("table_id")
-
-	return c.Render("menu", fiber.Map{
-		"Title":      "Menú",
-		"Categories": categories,
-		"TableID":    tableID,
+	return c.Render("partials/product_list", fiber.Map{
+		"Products": products,
 	})
 }
 
 // CreateOrder crea una nueva orden
-func (h *Handlers) CreateOrder(c *fiber.Ctx) error {
-	tableIDStr := c.FormValue("table_id")
-	tableID, err := strconv.ParseUint(tableIDStr, 10, 32)
+func CreateOrder(c *fiber.Ctx) error {
+	tableNum, err := strconv.Atoi(c.FormValue("table_num"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de mesa inválido",
-		})
+		return c.Status(fiber.StatusBadRequest).SendString("Número de mesa inválido")
 	}
 
-	// Verificar si ya existe una orden activa para esta mesa
-	var existingOrder Order
-	result := h.DB.Where("table_id = ? AND status = ?", tableID, "active").First(&existingOrder)
-	if result.Error == nil {
-		// Ya existe una orden, redirigir a esa orden
-		return c.Redirect("/order/" + strconv.FormatUint(uint64(existingOrder.ID), 10))
-	}
-
-	// Crear nueva orden
 	order := Order{
-		TableID: uint(tableID),
-		Status:  "active",
+		TableNum: tableNum,
+		Status:   "pending",
+		Total:    0,
 	}
 
-	if err := h.DB.Create(&order).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al crear la orden",
-		})
+	result := db.Create(&order)
+	if result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al crear orden")
 	}
 
-	return c.Redirect("/order/" + strconv.FormatUint(uint64(order.ID), 10))
+	return c.Redirect("/order/" + strconv.Itoa(int(order.ID)))
 }
 
-// GetOrder obtiene una orden específica
-func (h *Handlers) GetOrder(c *fiber.Ctx) error {
-	orderID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+// GetOrder obtiene los detalles de una orden
+func GetOrder(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de orden inválido",
-		})
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
 	var order Order
-	if err := h.DB.Preload("Table").Preload("Items.MenuItem").First(&order, orderID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Orden no encontrada",
-		})
+	result := db.Preload("Items").Preload("Items.Product").First(&order, id)
+	if result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	var menuItems []MenuItem
-	if err := h.DB.Where("available = ?", true).Find(&menuItems).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al obtener los items del menú",
-		})
-	}
-
-	// Agrupar por categoría
-	categories := make(map[string][]MenuItem)
-	for _, item := range menuItems {
-		categories[item.Category] = append(categories[item.Category], item)
-	}
-
-	// Recalcular el total
-	var total float64
-	for _, item := range order.Items {
-		total += item.MenuItem.Price * float64(item.Quantity)
-	}
-
-	// Actualizar el total en la base de datos
-	if order.Total != total {
-		order.Total = total
-		h.DB.Save(&order)
-	}
+	// Obtener productos para añadir a la orden
+	var products []Product
+	db.Order("category, name").Find(&products)
 
 	return c.Render("order", fiber.Map{
-		"Title":      "Orden #" + strconv.FormatUint(uint64(order.ID), 10),
-		"Order":      order,
-		"Categories": categories,
+		"Title":    "Detalle de Orden #" + strconv.Itoa(id),
+		"Order":    order,
+		"Products": products,
 	})
 }
 
-// AddToOrder añade un item a la orden
-func (h *Handlers) AddToOrder(c *fiber.Ctx) error {
-	orderID, err := strconv.ParseUint(c.FormValue("order_id"), 10, 32)
+// AddItemToOrder añade un producto a la orden
+func AddItemToOrder(c *fiber.Ctx) error {
+	orderID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de orden inválido",
-		})
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	menuItemID, err := strconv.ParseUint(c.FormValue("menu_item_id"), 10, 32)
+	productID, err := strconv.Atoi(c.FormValue("product_id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de item inválido",
-		})
+		return c.Status(fiber.StatusBadRequest).SendString("ID de producto inválido")
 	}
 
 	quantity, err := strconv.Atoi(c.FormValue("quantity"))
@@ -354,129 +114,90 @@ func (h *Handlers) AddToOrder(c *fiber.Ctx) error {
 
 	notes := c.FormValue("notes")
 
-	// Verificar si ya existe este item en la orden
-	var existingItem OrderItem
-	result := h.DB.Where("order_id = ? AND menu_item_id = ?", orderID, menuItemID).First(&existingItem)
-
-	if result.Error == nil {
-		// Ya existe, actualizar cantidad
-		existingItem.Quantity += quantity
-		existingItem.Notes = notes
-		if err := h.DB.Save(&existingItem).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Error al actualizar el item",
-			})
-		}
-	} else {
-		// No existe, crear nuevo
-		orderItem := OrderItem{
-			OrderID:    uint(orderID),
-			MenuItemID: uint(menuItemID),
-			Quantity:   quantity,
-			Notes:      notes,
-		}
-
-		if err := h.DB.Create(&orderItem).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Error al añadir item a la orden",
-			})
-		}
+	// Verificar que existan orden y producto
+	var order Order
+	if result := db.First(&order, orderID); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	return c.Redirect("/order/" + strconv.FormatUint(orderID, 10))
+	var product Product
+	if result := db.First(&product, productID); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Producto no encontrado")
+	}
+
+	// Crear el item de la orden
+	orderItem := OrderItem{
+		OrderID:   uint(orderID),
+		ProductID: uint(productID),
+		Quantity:  quantity,
+		Notes:     notes,
+	}
+
+	if result := db.Create(&orderItem); result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al añadir producto")
+	}
+
+	// Actualizar total de la orden
+	order.Total += product.Price * float64(quantity)
+	db.Save(&order)
+
+	// Cargar la orden actualizada con sus items
+	db.Preload("Items").Preload("Items.Product").First(&order, orderID)
+
+	return c.Render("partials/order_items", fiber.Map{
+		"Order": order,
+	})
 }
 
-// UpdateOrderItem actualiza la cantidad de un item de la orden
-func (h *Handlers) UpdateOrderItem(c *fiber.Ctx) error {
-	orderItemID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+// RemoveItemFromOrder elimina un item de la orden
+func RemoveItemFromOrder(c *fiber.Ctx) error {
+	orderID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de item inválido",
-		})
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	quantity, err := strconv.Atoi(c.FormValue("quantity"))
-	if err != nil || quantity < 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Cantidad inválida",
-		})
+	itemID, err := strconv.Atoi(c.Params("itemId"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("ID de item inválido")
 	}
 
-	var orderItem OrderItem
-	if err := h.DB.First(&orderItem, orderItemID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Item no encontrado",
-		})
+	// Buscar el item para obtener información antes de eliminarlo
+	var item OrderItem
+	if err := db.Preload("Product").First(&item, itemID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Item no encontrado")
 	}
 
-	if quantity == 0 {
-		// Eliminar el item
-		if err := h.DB.Delete(&orderItem).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Error al eliminar el item",
-			})
-		}
-	} else {
-		// Actualizar cantidad
-		orderItem.Quantity = quantity
-		if err := h.DB.Save(&orderItem).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Error al actualizar el item",
-			})
-		}
-	}
+	// Eliminar el item
+	db.Delete(&OrderItem{}, itemID)
 
-	return c.Redirect("/order/" + strconv.FormatUint(uint64(orderItem.OrderID), 10))
+	// Actualizar total de la orden
+	var order Order
+	db.First(&order, orderID)
+	order.Total -= item.Product.Price * float64(item.Quantity)
+	db.Save(&order)
+
+	// Cargar la orden actualizada con sus items
+	db.Preload("Items").Preload("Items.Product").First(&order, orderID)
+
+	return c.Render("partials/order_items", fiber.Map{
+		"Order": order,
+	})
 }
 
 // CompleteOrder marca una orden como completada
-func (h *Handlers) CompleteOrder(c *fiber.Ctx) error {
-	orderID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+func CompleteOrder(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de orden inválido",
-		})
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
 	var order Order
-	if err := h.DB.First(&order, orderID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Orden no encontrada",
-		})
+	if result := db.First(&order, id); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
 	order.Status = "completed"
-	if err := h.DB.Save(&order).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al completar la orden",
-		})
-	}
+	db.Save(&order)
 
-	return c.Redirect("/tables")
-}
-
-// CancelOrder cancela una orden
-func (h *Handlers) CancelOrder(c *fiber.Ctx) error {
-	orderID, err := strconv.ParseUint(c.Params("id"), 10, 32)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID de orden inválido",
-		})
-	}
-
-	var order Order
-	if err := h.DB.First(&order, orderID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Orden no encontrada",
-		})
-	}
-
-	order.Status = "cancelled"
-	if err := h.DB.Save(&order).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al cancelar la orden",
-		})
-	}
-
-	return c.Redirect("/tables")
+	return c.Redirect("/")
 }
