@@ -31,45 +31,86 @@
     </div>
     <div class="col-md-9">
         <div class="tab-content" id="v-pills-tabContent">
-            <!-- Información del restaurante -->
+            <!-- Restaurant Information Tab -->
             <div class="tab-pane fade show active" id="v-pills-restaurant" role="tabpanel">
                 <div class="macos-card p-4">
                     <h5 class="mb-3"><i class="bi bi-shop me-2"></i>Información del restaurante</h5>
-                    <form hx-put="/settings/restaurant" hx-swap="none">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Nombre del restaurante</label>
-                            <input type="text" class="form-control" id="name" name="name"
-                                value="{{.Settings.RestaurantName}}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="address" class="form-label">Dirección</label>
-                            <input type="text" class="form-control" id="address" name="address"
-                                value="{{.Settings.Address}}">
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="phone" class="form-label">Teléfono</label>
-                                <input type="text" class="form-control" id="phone" name="phone"
-                                    value="{{.Settings.Phone}}">
+                    <form hx-put="/settings/restaurant" hx-swap="none" hx-encoding="multipart/form-data"
+                        hx-indicator="#restaurant-loader">
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="mb-3">
+                                    <div class="logo-preview rounded-circle mx-auto"
+                                        style="width: 120px; height: 120px; overflow: hidden; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; border: 2px dashed #dee2e6; position: relative;">
+                                        {{if .Settings.LogoPath}}
+                                        <img src="{{.Settings.LogoPath}}" class="img-fluid" alt="Logo" id="logoPreview">
+                                        {{else}}
+                                        <i class="bi bi-image fs-1 text-secondary" id="logoPlaceholder"></i>
+                                        {{end}}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="logo" class="btn btn-sm btn-outline-secondary">Cambiar logo</label>
+                                    <input type="file" class="d-none" id="logo" name="logo" accept="image/*"
+                                        onchange="previewLogo(this)">
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="email" class="form-label">Correo electrónico</label>
-                                <input type="email" class="form-control" id="email" name="email"
-                                    value="{{.Settings.Email}}">
+                            <div class="col-md-9">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nombre del restaurante *</label>
+                                    <input type="text" class="form-control" id="name" name="name" required
+                                        value="{{.Settings.RestaurantName}}">
+                                    <div class="invalid-feedback">El nombre del restaurante es obligatorio</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="address" class="form-label">Dirección</label>
+                                    <input type="text" class="form-control" id="address" name="address"
+                                        value="{{.Settings.Address}}">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="phone" class="form-label">Teléfono</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                            <input type="tel" class="form-control" id="phone" name="phone"
+                                                value="{{.Settings.Phone}}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label">Correo electrónico</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                            <input type="email" class="form-control" id="email" name="email"
+                                                value="{{.Settings.Email}}">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn macos-btn macos-btn-primary">
-                            <i class="bi bi-save me-2"></i>Guardar cambios
-                        </button>
+
+                        <div class="d-flex justify-content-end align-items-center">
+                            <span id="restaurant-loader" class="htmx-indicator me-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Guardando...</span>
+                                </div>
+                                <span class="ms-1">Guardando...</span>
+                            </span>
+                            <button type="reset" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Restablecer
+                            </button>
+                            <button type="submit" class="btn macos-btn macos-btn-primary">
+                                <i class="bi bi-save me-2"></i>Guardar cambios
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Configuración de impresora -->
+            <!-- Printer Configuration Tab -->
             <div class="tab-pane fade" id="v-pills-printer" role="tabpanel">
                 <div class="macos-card p-4">
                     <h5 class="mb-3"><i class="bi bi-printer me-2"></i>Configuración de impresora</h5>
-                    <form hx-put="/settings/printer" hx-swap="none">
+                    <form hx-put="/settings/printer" hx-swap="none" hx-indicator="#printer-loader">
                         <div class="mb-3">
                             <label for="default_printer" class="form-label">Impresora predeterminada</label>
                             <input type="text" class="form-control" id="default_printer" name="default_printer"
@@ -82,26 +123,46 @@
                             <label class="form-check-label" for="auto_print">Imprimir automáticamente al completar
                                 orden</label>
                         </div>
-                        <button type="submit" class="btn macos-btn macos-btn-primary">
-                            <i class="bi bi-save me-2"></i>Guardar cambios
-                        </button>
+
+                        <div class="d-flex justify-content-end align-items-center">
+                            <span id="printer-loader" class="htmx-indicator me-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Guardando...</span>
+                                </div>
+                                <span class="ms-1">Guardando...</span>
+                            </span>
+                            <button type="submit" class="btn macos-btn macos-btn-primary">
+                                <i class="bi bi-save me-2"></i>Guardar cambios
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Configuración de mesas -->
+            <!-- Tables Configuration Tab -->
             <div class="tab-pane fade" id="v-pills-tables" role="tabpanel">
                 <div class="macos-card p-4">
                     <h5 class="mb-3"><i class="bi bi-grid-3x3 me-2"></i>Configuración de mesas</h5>
-                    <form hx-put="/settings/tables" hx-target="#table-grid" hx-swap="outerHTML">
+                    <form hx-put="/settings/tables" hx-target="#table-grid" hx-swap="outerHTML"
+                        hx-indicator="#table-loading">
                         <div class="mb-3">
                             <label for="tableCount" class="form-label">Número de mesas</label>
                             <input type="number" class="form-control" id="tableCount" name="tableCount" min="1"
                                 value="{{.Settings.TableCount}}">
+                            <small class="text-muted">Si reduces el número de mesas, solo se eliminarán las mesas
+                                desocupadas</small>
                         </div>
-                        <button type="submit" class="btn macos-btn macos-btn-primary mb-4">
-                            <i class="bi bi-save me-2"></i>Actualizar mesas
-                        </button>
+                        <div class="d-flex justify-content-start align-items-center mb-4">
+                            <button type="submit" class="btn macos-btn macos-btn-primary">
+                                <i class="bi bi-save me-2"></i>Actualizar mesas
+                            </button>
+                            <div id="table-loading" class="htmx-indicator ms-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <span class="ms-2">Actualizando mesas...</span>
+                            </div>
+                        </div>
                     </form>
 
                     <hr class="my-4">
@@ -113,20 +174,22 @@
                 </div>
             </div>
 
-            <!-- Preferencias de la aplicación -->
+            <!-- Application Preferences Tab -->
             <div class="tab-pane fade" id="v-pills-app" role="tabpanel">
                 <div class="macos-card p-4">
                     <h5 class="mb-3"><i class="bi bi-sliders me-2"></i>Preferencias de la aplicación</h5>
-                    <form hx-put="/settings/app" hx-swap="none">
+                    <form hx-put="/settings/app" hx-swap="none" hx-indicator="#app-loader">
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="dark_mode" name="dark_mode" {{if
                                 .Settings.DarkMode}}checked{{end}}>
-                            <label class="form-check-label" for="dark_mode">Modo oscuro por defecto</label>
+                            <label class="form-check-label" for="dark_mode">Modo oscuro</label>
                         </div>
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="auto_refresh" name="auto_refresh" {{if
                                 .Settings.AutoRefresh}}checked{{end}}>
                             <label class="form-check-label" for="auto_refresh">Actualizar automáticamente</label>
+                            <small class="d-block text-muted">Actualiza vistas como cocina y órdenes
+                                automáticamente</small>
                         </div>
                         <div class="row">
                             <div class="col-md-4 mb-3">
@@ -149,28 +212,52 @@
                             <div class="col-md-4 mb-3">
                                 <label for="currency_symbol" class="form-label">Símbolo de moneda</label>
                                 <input type="text" class="form-control" id="currency_symbol" name="currency_symbol"
-                                    value="{{.Settings.CurrencySymbol}}">
+                                    value="{{.Settings.CurrencySymbol}}" maxlength="3">
                             </div>
                         </div>
-                        <button type="submit" class="btn macos-btn macos-btn-primary">
-                            <i class="bi bi-save me-2"></i>Guardar cambios
-                        </button>
+
+                        <div class="d-flex justify-content-end align-items-center">
+                            <span id="app-loader" class="htmx-indicator me-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Guardando...</span>
+                                </div>
+                                <span class="ms-1">Guardando...</span>
+                            </span>
+                            <button type="submit" class="btn macos-btn macos-btn-primary">
+                                <i class="bi bi-save me-2"></i>Guardar cambios
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Respaldos -->
+            <!-- Backups Tab -->
             <div class="tab-pane fade" id="v-pills-backup" role="tabpanel">
                 <div class="macos-card p-4">
-                    <h5 class="mb-3"><i class="bi bi-archive me-2"></i>Respaldos</h5>
-                    <div class="mb-4">
-                        <button class="btn macos-btn macos-btn-primary" hx-post="/backup" hx-swap="none">
-                            <i class="bi bi-cloud-upload me-2"></i>Crear respaldo ahora
+                    <h5 class="mb-3"><i class="bi bi-archive me-2"></i>Respaldos de base de datos</h5>
+
+                    <p class="mb-4">
+                        Los respaldos guardan todos los datos de tu restaurante, incluyendo productos, órdenes,
+                        configuración y más.
+                        Recomendamos crear respaldos regularmente.
+                    </p>
+
+                    <div class="d-flex mb-4 justify-content-start align-items-center">
+                        <button class="btn macos-btn macos-btn-primary" hx-post="/backup" hx-target="#backup-list"
+                            hx-indicator="#backup-indicator">
+                            <i class="bi bi-cloud-download me-2"></i>Crear respaldo ahora
                         </button>
+                        <span id="backup-indicator" class="htmx-indicator ms-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Creando respaldo...</span>
+                            </div>
+                            <span class="ms-1">Creando respaldo...</span>
+                        </span>
                     </div>
 
-                    <h6 class="mb-3">Respaldos disponibles</h6>
-                    <div id="backups-list" hx-get="/backup/list" hx-trigger="load, every 60s">
+                    <hr>
+
+                    <div id="backup-list" class="mt-4">
                         {{template "partials/backup_list" .}}
                     </div>
                 </div>
@@ -178,3 +265,82 @@
         </div>
     </div>
 </div>
+
+<script>
+    function previewLogo(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = document.getElementById('logoPreview');
+                const placeholder = document.getElementById('logoPlaceholder');
+
+                if (preview) {
+                    preview.src = e.target.result;
+                } else {
+                    const newPreview = document.createElement('img');
+                    newPreview.src = e.target.result;
+                    newPreview.id = 'logoPreview';
+                    newPreview.className = 'img-fluid';
+                    newPreview.alt = 'Logo';
+
+                    const previewContainer = document.querySelector('.logo-preview');
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
+                    previewContainer.appendChild(newPreview);
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        if (evt.detail.target.id === 'table-grid') {
+            document.querySelector('.htmx-indicator').classList.add('d-none');
+        }
+    });
+
+    document.body.addEventListener('htmx:beforeSend', function (evt) {
+        const form = evt.detail.requestConfig.elt;
+        if (form.tagName === 'FORM') {
+            const isValid = form.checkValidity();
+            if (!isValid) {
+                evt.preventDefault();
+                Array.from(form.elements).forEach(input => {
+                    if (!input.validity.valid) {
+                        input.classList.add('is-invalid');
+                    }
+                });
+            }
+        }
+    });
+
+    // Listen for refreshBackups event
+    document.body.addEventListener('htmx:afterOnLoad', function (evt) {
+        if (evt.detail.xhr.getResponseHeader('HX-Trigger') &&
+            evt.detail.xhr.getResponseHeader('HX-Trigger').includes('refreshBackups')) {
+            htmx.ajax('GET', '/backup/list', { target: '#backup-list' });
+        }
+
+        if (evt.detail.xhr.getResponseHeader('HX-Trigger') &&
+            evt.detail.xhr.getResponseHeader('HX-Trigger').includes('refreshTheme')) {
+            setTimeout(() => {
+                const darkMode = document.getElementById('dark_mode').checked;
+                if (darkMode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            }, 1000);
+        }
+    });
+
+    // Validate input on change
+    document.querySelectorAll('form input, form select, form textarea').forEach(input => {
+        input.addEventListener('input', function () {
+            if (this.classList.contains('is-invalid')) {
+                this.classList.remove('is-invalid');
+            }
+        });
+    });
+</script>
