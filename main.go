@@ -128,18 +128,35 @@ func main() {
 		return t.Format("15:04")
 	})
 
+	// Add these new functions
+	engine.AddFunc("add", func(a, b int) int {
+		return a + b
+	})
+
+	engine.AddFunc("sub", func(a, b int) int {
+		return a - b
+	})
+
 	// Crear aplicación Fiber
 	app := fiber.New(fiber.Config{
 		Views:       engine,
 		ViewsLayout: "layouts/main",
 	})
 
+	engine.AddFunc("mul", func(a, b int) int {
+		return a * b
+	})
+
+	engine.AddFunc("div", func(a, b int) int {
+		if b == 0 {
+			return 0
+		}
+		return a / b
+	})
+
 	// Middleware
 	app.Use(logger.New())
 	app.Use(recover.New())
-
-	// Rutas estáticas
-	app.Static("/static", "./static")
 
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("CurrentTime", time.Now().Format("02/01/2006 15:04"))

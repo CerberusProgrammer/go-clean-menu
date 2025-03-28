@@ -1,34 +1,28 @@
-<div class="table-responsive mt-3">
-    <table class="table table-sm">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Tamaño</th>
-                <th>Fecha</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{if .Backups}}
-            {{range .Backups}}
-            <tr>
-                <td>{{.FileName}}</td>
-                <td>{{.Size}} bytes</td>
-                <td>{{formatDate .CreatedAt}}</td>
-                <td>
-                    <a href="/backup/{{.ID}}/download" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-download"></i>
-                    </a>
-                </td>
-            </tr>
-            {{end}}
-            {{else}}
-            <tr>
-                <td colspan="4" class="text-center">
-                    No hay respaldos disponibles
-                </td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
-</div>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Archivo</th>
+            <th>Tamaño</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Backups}}
+        <tr>
+            <td>{{.FileName}}</td>
+            <td>{{.Size}} bytes</td>
+            <td>{{formatTime .CreatedAt}}</td>
+            <td>
+                <a href="/backup/download/{{.ID}}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download"></i>
+                </a>
+            </td>
+        </tr>
+        {{else}}
+        <tr>
+            <td colspan="4" class="text-center py-4">No hay respaldos disponibles</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>

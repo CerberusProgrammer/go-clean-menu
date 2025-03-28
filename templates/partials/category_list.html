@@ -1,7 +1,12 @@
-<ul class="list-group">
+<div class="list-group">
     {{range .Categories}}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
+    <div class="list-group-item d-flex justify-content-between align-items-center">
         {{.}}
-    </li>
+        <span class="badge bg-primary rounded-pill">
+            {{/* Aquí podrías colocar el conteo de productos por categoría si lo quisieras implementar */}}
+        </span>
+    </div>
+    {{else}}
+    <div class="list-group-item text-center text-muted">No hay categorías disponibles</div>
     {{end}}
-</ul>
+</div>

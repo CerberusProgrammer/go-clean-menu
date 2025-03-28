@@ -1,85 +1,70 @@
-<div class="page-title">
-    <i class="bi bi-clock-history"></i> Historial de Órdenes
+<div class="mb-4">
+    <h1 class="page-title"><i class="bi bi-clock-history"></i> Historial de Órdenes</h1>
 </div>
 
-<div class="macos-card mb-4 p-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Filtros</h5>
+<div class="macos-card p-4 mb-4">
+    <h5 class="mb-3">Filtrar órdenes</h5>
+    <div class="row g-2">
+        <div class="col-md-auto">
+            <div class="btn-group" role="group" aria-label="Filtro rápido">
+              <!-- Fix first button -->
+<button type="button" class="btn {{if eq .FilterType "today"}}btn-primary{{else}}btn-outline-primary{{end}}" 
+hx-get="/history/today" 
+hx-target="#orders-history">Hoy</button>
+
+<!-- Fix second button -->
+<button type="button" class="btn {{if eq .FilterType "week"}}btn-primary{{else}}btn-outline-primary{{end}}" 
+hx-get="/history/week"
+hx-target="#orders-history">Esta semana</button>
+
+<!-- Fix third button -->
+<button type="button" class="btn {{if eq .FilterType "month"}}btn-primary{{else}}btn-outline-primary{{end}}" 
+hx-get="/history/month"
+hx-target="#orders-history">Este mes</button>
+            </div>
+        </div>
+        <div class="col-md">
+            <form hx-get="/history/custom" hx-target="#orders-history" class="row g-2">
+                <div class="col-md-4">
+                    <input type="date" class="form-control" name="startDate" value="{{.StartDate}}" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="date" class="form-control" name="endDate" value="{{.EndDate}}" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="macos-card">
+    <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <h5 class="m-0">Órdenes completadas</h5>
         <div>
-            <button class="btn btn-outline-secondary btn-sm me-2" hx-get="/history/today" hx-target="#orderHistory">
-                Hoy
-            </button>
-            <button class="btn btn-outline-secondary btn-sm me-2" hx-get="/history/week" hx-target="#orderHistory">
-                Esta Semana
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" hx-get="/history/month" hx-target="#orderHistory">
-                Este Mes
+            <button class="btn btn-sm btn-outline-secondary" id="exportCSV">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportar CSV
             </button>
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label">Desde</label>
-            <input type="date" class="form-control" id="startDate">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Hasta</label>
-            <input type="date" class="form-control" id="endDate">
-        </div>
-        <div class="col-md-4 d-flex align-items-end">
-            <button class="btn btn-outline-secondary w-100" id="filterDates" hx-get="/history/custom"
-                hx-target="#orderHistory" hx-include="#startDate,#endDate">
-                Aplicar Filtro
-            </button>
-        </div>
+    <div id="orders-history" class="table-responsive">
+        {{template "partials/order_history" .}}
     </div>
 </div>
 
-<div id="orderHistory" class="macos-card p-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Órdenes Completadas</h5>
-        <span class="text-secondary">Total: {{len .Orders}} órdenes</span>
-    </div>
+<script>
+    document.getElementById('exportCSV').addEventListener('click', function () {
+        // En una implementación real, aquí se haría una petición para generar y descargar el CSV
+        const startDate = document.querySelector('input[name="startDate"]').value;
+        const endDate = document.querySelector('input[name="endDate"]').value;
+        const url = `/history/export?startDate=${startDate}&endDate=${endDate}`;
 
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Mesa</th>
-                    <th>Fecha</th>
-                    <th>Productos</th>
-                    <th>Total</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{if .Orders}}
-                {{range .Orders}}
-                <tr>
-                    <td>#{{.ID}}</td>
-                    <td>{{.TableNum}}</td>
-                    <td>{{formatDate .CreatedAt}}</td>
-                    <td>{{.ItemCount}} items</td>
-                    <td>${{printf "%.2f" .Total}}</td>
-                    <td>
-                        <a href="/order/{{.ID}}" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                        <button class="btn btn-sm btn-outline-secondary ms-1" hx-post="/order/{{.ID}}/print"
-                            hx-swap="none">
-                            <i class="bi bi-printer"></i>
-                        </button>
-                    </td>
-                </tr>
-                {{end}}
-                {{else}}
-                <tr>
-                    <td colspan="6" class="text-center py-3">No hay órdenes en el período seleccionado</td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-    </div>
-</div>
+        showToast('Generando archivo CSV...', 'info');
+        // Simulación de descarga
+        setTimeout(() => {
+            showToast('Archivo CSV generado correctamente', 'success');
+        }, 1000);
+    });
+</script>

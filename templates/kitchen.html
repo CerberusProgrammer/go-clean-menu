@@ -1,59 +1,22 @@
-<div class="page-title">
-    <i class="bi bi-fire"></i> Vista de Cocina
-</div>
-
-<div class="mb-3">
-    <button class="btn macos-btn macos-btn-primary" hx-get="/kitchen/orders" hx-target="#kitchenOrders"
-        hx-trigger="click, every 30s">
-        <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <h1 class="page-title"><i class="bi bi-fire"></i> Vista de Cocina</h1>
+    <button class="btn macos-btn" hx-get="/kitchen/orders" hx-target="#kitchen-orders">
+        <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
     </button>
 </div>
 
-<div class="row" id="kitchenOrders">
-    {{range .Orders}}
-    <div class="col-md-6 mb-4">
-        <div class="macos-card">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Mesa #{{.TableNum}}</h5>
-                <div>
-                    <span class="badge bg-warning me-2">{{formatTime .CreatedAt}}</span>
-                    <span class="badge bg-secondary">Orden #{{.ID}}</span>
-                </div>
-            </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    {{range .Items}}
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <div>
-                            <span class="badge bg-light text-dark me-2">{{.Quantity}}x</span>
-                            <strong>{{.Product.Name}}</strong>
-                            {{if .Notes}}
-                            <p class="text-muted small mb-0 mt-1"><i class="bi bi-info-circle me-1"></i>{{.Notes}}</p>
-                            {{end}}
-                        </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch"
-                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-swap="none">
-                        </div>
-                    </li>
-                    {{end}}
-                </ul>
-            </div>
-            <div class="card-footer bg-light">
-                <button class="btn btn-success btn-sm w-100" hx-post="/order/{{.ID}}/complete"
-                    hx-target="#kitchenOrders" hx-swap="outerHTML">
-                    Orden Completada
-                </button>
-            </div>
-        </div>
-    </div>
-    {{else}}
-    <div class="col-12">
-        <div class="macos-card p-4 text-center">
-            <i class="bi bi-check-circle fs-1 text-success mb-2"></i>
-            <h4>¡No hay órdenes pendientes!</h4>
-            <p class="text-muted">Todas las órdenes han sido completadas</p>
-        </div>
-    </div>
-    {{end}}
+<div id="kitchen-orders" hx-get="/kitchen/orders" hx-trigger="load, every 30s">
+    <!-- El contenido se cargará dinámicamente -->
 </div>
+
+<script>
+    // Funciones específicas para la vista de cocina
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (e.detail.target.id === 'kitchen-orders') {
+            // Sonido de notificación si hay nuevas órdenes
+            const orderCount = document.querySelectorAll('#kitchen-orders .macos-card').length;
+            if (orderCount > 0 && !document.hidden) {
+            }
+        }
+    });
+</script>

@@ -1,124 +1,180 @@
-<div class="page-title">
-    <i class="bi bi-gear"></i> Configuración
+<div class="mb-4">
+    <h1 class="page-title"><i class="bi bi-gear"></i> Configuración</h1>
 </div>
 
 <div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="macos-card p-4">
-            <h5 class="mb-3">Información del Restaurante</h5>
-            <form hx-put="/settings/restaurant" hx-swap="none">
-                <div class="mb-3">
-                    <label class="form-label">Nombre del Restaurante</label>
-                    <input type="text" class="form-control" name="name" value="{{.Settings.RestaurantName}}">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Dirección</label>
-                    <input type="text" class="form-control" name="address" value="{{.Settings.Address}}">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Teléfono</label>
-                    <input type="text" class="form-control" name="phone" value="{{.Settings.Phone}}">
-                </div>
-                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar Cambios</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="col-md-6 mb-4">
-        <div class="macos-card p-4">
-            <h5 class="mb-3">Configuración de Impresora</h5>
-            <form hx-put="/settings/printer" hx-swap="none">
-                <div class="mb-3">
-                    <label class="form-label">Impresora Predeterminada</label>
-                    <select class="form-select" name="default_printer">
-                        <option value="thermal1" {{if eq .Settings.DefaultPrinter "thermal1" }}selected{{end}}>
-                            Impresora Térmica - Cocina
-                        </option>
-                        <option value="thermal2" {{if eq .Settings.DefaultPrinter "thermal2" }}selected{{end}}>
-                            Impresora Térmica - Barra
-                        </option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" name="auto_print" {{if
-                            .Settings.AutoPrint}}checked{{end}}>
-                        <label class="form-check-label">Impresión automática</label>
-                    </div>
-                </div>
-                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar Cambios</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="col-md-6 mb-4">
-        <div class="macos-card p-4">
-            <h5 class="mb-3">Mesas</h5>
-            <div class="mb-3">
-                <label class="form-label">Número de Mesas</label>
-                <div class="input-group">
-                    <input type="number" class="form-control" id="tableCount" value="{{.Settings.TableCount}}" min="1">
-                    <button class="btn btn-outline-secondary" hx-put="/settings/tables" hx-include="#tableCount"
-                        hx-swap="none">Actualizar</button>
-                </div>
+    <div class="col-md-3 mb-4">
+        <div class="macos-card p-3">
+            <div class="list-group list-group-flush nav nav-pills flex-column" id="v-pills-tab" role="tablist">
+                <button class="list-group-item list-group-item-action active bg-transparent" id="v-pills-restaurant-tab"
+                    data-bs-toggle="pill" data-bs-target="#v-pills-restaurant" type="button" role="tab">
+                    <i class="bi bi-shop me-2"></i>Información del restaurante
+                </button>
+                <button class="list-group-item list-group-item-action bg-transparent" id="v-pills-printer-tab"
+                    data-bs-toggle="pill" data-bs-target="#v-pills-printer" type="button" role="tab">
+                    <i class="bi bi-printer me-2"></i>Configuración de impresora
+                </button>
+                <button class="list-group-item list-group-item-action bg-transparent" id="v-pills-tables-tab"
+                    data-bs-toggle="pill" data-bs-target="#v-pills-tables" type="button" role="tab">
+                    <i class="bi bi-grid-3x3 me-2"></i>Mesas
+                </button>
+                <button class="list-group-item list-group-item-action bg-transparent" id="v-pills-app-tab"
+                    data-bs-toggle="pill" data-bs-target="#v-pills-app" type="button" role="tab">
+                    <i class="bi bi-sliders me-2"></i>Preferencias de la aplicación
+                </button>
+                <button class="list-group-item list-group-item-action bg-transparent" id="v-pills-backup-tab"
+                    data-bs-toggle="pill" data-bs-target="#v-pills-backup" type="button" role="tab">
+                    <i class="bi bi-archive me-2"></i>Respaldos
+                </button>
             </div>
-            <div class="mt-3">
-                <div class="row g-2">
-                    {{range $i := .Tables}}
-                    <div class="col-2">
-                        <div
-                            class="border rounded text-center py-2 {{if .Occupied}}bg-warning-subtle{{else}}bg-light{{end}}">
-                            {{.Number}}
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="tab-content" id="v-pills-tabContent">
+            <!-- Información del restaurante -->
+            <div class="tab-pane fade show active" id="v-pills-restaurant" role="tabpanel">
+                <div class="macos-card p-4">
+                    <h5 class="mb-3"><i class="bi bi-shop me-2"></i>Información del restaurante</h5>
+                    <form hx-put="/settings/restaurant" hx-swap="none">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nombre del restaurante</label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                value="{{.Settings.RestaurantName}}">
                         </div>
-                    </div>
-                    {{end}}
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="address" name="address"
+                                value="{{.Settings.Address}}">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="phone" name="phone"
+                                    value="{{.Settings.Phone}}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Correo electrónico</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                    value="{{.Settings.Email}}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn macos-btn macos-btn-primary">
+                            <i class="bi bi-save me-2"></i>Guardar cambios
+                        </button>
+                    </form>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="col-md-6 mb-4">
-        <div class="macos-card p-4">
-            <h5 class="mb-3">Configuración de Aplicación</h5>
-            <form hx-put="/settings/app" hx-swap="none">
-                <div class="mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" name="dark_mode" {{if
-                            .Settings.DarkMode}}checked{{end}}>
-                        <label class="form-check-label">Modo Oscuro</label>
-                    </div>
+            <!-- Configuración de impresora -->
+            <div class="tab-pane fade" id="v-pills-printer" role="tabpanel">
+                <div class="macos-card p-4">
+                    <h5 class="mb-3"><i class="bi bi-printer me-2"></i>Configuración de impresora</h5>
+                    <form hx-put="/settings/printer" hx-swap="none">
+                        <div class="mb-3">
+                            <label for="default_printer" class="form-label">Impresora predeterminada</label>
+                            <input type="text" class="form-control" id="default_printer" name="default_printer"
+                                value="{{.Settings.DefaultPrinter}}">
+                            <small class="text-muted">Nombre de la impresora térmica o red</small>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="auto_print" name="auto_print" {{if
+                                .Settings.AutoPrint}}checked{{end}}>
+                            <label class="form-check-label" for="auto_print">Imprimir automáticamente al completar
+                                orden</label>
+                        </div>
+                        <button type="submit" class="btn macos-btn macos-btn-primary">
+                            <i class="bi bi-save me-2"></i>Guardar cambios
+                        </button>
+                    </form>
                 </div>
-                <div class="mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" name="auto_refresh" {{if
-                            .Settings.AutoRefresh}}checked{{end}}>
-                        <label class="form-check-label">Actualizar automáticamente</label>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Idioma</label>
-                    <select class="form-select" name="language">
-                        <option value="es" {{if eq .Settings.Language "es" }}selected{{end}}>Español</option>
-                        <option value="en" {{if eq .Settings.Language "en" }}selected{{end}}>English</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar Cambios</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="col-12 mb-4">
-        <div class="macos-card p-4">
-            <h5 class="mb-3">Respaldo de Datos</h5>
-            <div class="d-flex gap-2">
-                <button class="btn macos-btn macos-btn-primary" hx-post="/backup" hx-swap="none">
-                    <i class="bi bi-download me-1"></i> Crear Copia de Seguridad
-                </button>
-                <button class="btn macos-btn" hx-get="/backup/list" hx-target="#backupList">
-                    <i class="bi bi-list me-1"></i> Ver Copias de Seguridad
-                </button>
             </div>
-            <div id="backupList" class="mt-3"></div>
+
+            <!-- Configuración de mesas -->
+            <div class="tab-pane fade" id="v-pills-tables" role="tabpanel">
+                <div class="macos-card p-4">
+                    <h5 class="mb-3"><i class="bi bi-grid-3x3 me-2"></i>Configuración de mesas</h5>
+                    <form hx-put="/settings/tables" hx-target="#table-grid" hx-swap="outerHTML">
+                        <div class="mb-3">
+                            <label for="tableCount" class="form-label">Número de mesas</label>
+                            <input type="number" class="form-control" id="tableCount" name="tableCount" min="1"
+                                value="{{.Settings.TableCount}}">
+                        </div>
+                        <button type="submit" class="btn macos-btn macos-btn-primary mb-4">
+                            <i class="bi bi-save me-2"></i>Actualizar mesas
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3">Vista previa de mesas</h5>
+                    <div id="table-grid" class="mt-3">
+                        {{template "partials/table_grid" .}}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferencias de la aplicación -->
+            <div class="tab-pane fade" id="v-pills-app" role="tabpanel">
+                <div class="macos-card p-4">
+                    <h5 class="mb-3"><i class="bi bi-sliders me-2"></i>Preferencias de la aplicación</h5>
+                    <form hx-put="/settings/app" hx-swap="none">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="dark_mode" name="dark_mode" {{if
+                                .Settings.DarkMode}}checked{{end}}>
+                            <label class="form-check-label" for="dark_mode">Modo oscuro por defecto</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="auto_refresh" name="auto_refresh" {{if
+                                .Settings.AutoRefresh}}checked{{end}}>
+                            <label class="form-check-label" for="auto_refresh">Actualizar automáticamente</label>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="language" class="form-label">Idioma</label>
+                                <select class="form-select" id="language" name="language">
+                                    <option value="es" {{if eq .Settings.Language "es" }}selected{{end}}>Español
+                                    </option>
+                                    <option value="en" {{if eq .Settings.Language "en" }}selected{{end}}>English
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="tax_rate" class="form-label">Tasa de impuesto</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="tax_rate" name="tax_rate" step="0.01"
+                                        min="0" max="1" value="{{.Settings.TaxRate}}">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="currency_symbol" class="form-label">Símbolo de moneda</label>
+                                <input type="text" class="form-control" id="currency_symbol" name="currency_symbol"
+                                    value="{{.Settings.CurrencySymbol}}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn macos-btn macos-btn-primary">
+                            <i class="bi bi-save me-2"></i>Guardar cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Respaldos -->
+            <div class="tab-pane fade" id="v-pills-backup" role="tabpanel">
+                <div class="macos-card p-4">
+                    <h5 class="mb-3"><i class="bi bi-archive me-2"></i>Respaldos</h5>
+                    <div class="mb-4">
+                        <button class="btn macos-btn macos-btn-primary" hx-post="/backup" hx-swap="none">
+                            <i class="bi bi-cloud-upload me-2"></i>Crear respaldo ahora
+                        </button>
+                    </div>
+
+                    <h6 class="mb-3">Respaldos disponibles</h6>
+                    <div id="backups-list" hx-get="/backup/list" hx-trigger="load, every 60s">
+                        {{template "partials/backup_list" .}}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

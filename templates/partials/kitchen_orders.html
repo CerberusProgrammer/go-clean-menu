@@ -1,0 +1,50 @@
+<div class="row g-3">
+    {{range .Orders}}
+    <div class="col-md-6">
+        <div class="macos-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="m-0">Mesa {{.TableNum}} - Orden #{{.ID}}</h5>
+                <span class="badge bg-primary">{{formatTime .CreatedAt}}</span>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {{range .Items}}
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                        <div>
+                            <span class="badge bg-secondary me-2">{{.Quantity}}x</span>
+                            <strong>{{.Product.Name}}</strong>
+                            {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
+                        </div>
+                        <div>
+                            <button class="btn btn-sm {{if .IsReady}}btn-success{{else}}btn-outline-secondary{{end}}"
+                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-swap="none">
+                                {{if .IsReady}}<i class="bi bi-check-circle"></i> Listo{{else}}Marcar{{end}}
+                            </button>
+                        </div>
+                    </li>
+                    {{end}}
+                </ul>
+
+                <div class="progress mt-3" title="Progreso de preparación">
+                    <div class="progress-bar" role="progressbar" hx-get="/kitchen/order/{{.ID}}/status"
+                        hx-trigger="load, every 10s" hx-swap="outerHTML"></div>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <button class="btn macos-btn macos-btn-primary" hx-post="/kitchen/order/{{.ID}}/complete"
+                    hx-target="#kitchen-orders" hx-confirm="¿Marcar esta orden como completada?">
+                    <i class="bi bi-check2-all me-2"></i>Completar
+                </button>
+            </div>
+        </div>
+    </div>
+    {{else}}
+    <div class="col-12">
+        <div class="macos-card p-5 text-center">
+            <i class="bi bi-check-circle fs-1 text-success"></i>
+            <h4 class="mt-3">¡No hay órdenes pendientes!</h4>
+            <p class="text-secondary">La cocina está al día</p>
+        </div>
+    </div>
+    {{end}}
+</div>

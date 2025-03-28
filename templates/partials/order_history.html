@@ -1,44 +1,35 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Órdenes Completadas</h5>
-    <span class="text-secondary">Total: {{len .Orders}} órdenes</span>
-</div>
-
-<div class="table-responsive">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Mesa</th>
-                <th>Fecha</th>
-                <th>Productos</th>
-                <th>Total</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{if .Orders}}
-            {{range .Orders}}
-            <tr>
-                <td>#{{.ID}}</td>
-                <td>{{.TableNum}}</td>
-                <td>{{formatDate .CreatedAt}}</td>
-                <td>{{.ItemCount}} items</td>
-                <td>${{printf "%.2f" .Total}}</td>
-                <td>
-                    <a href="/order/{{.ID}}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                    <button class="btn btn-sm btn-outline-secondary ms-1" hx-post="/order/{{.ID}}/print" hx-swap="none">
-                        <i class="bi bi-printer"></i>
-                    </button>
-                </td>
-            </tr>
-            {{end}}
-            {{else}}
-            <tr>
-                <td colspan="6" class="text-center py-3">No hay órdenes en el período seleccionado</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
-</div>
+<table class="table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Mesa</th>
+            <th>Productos</th>
+            <th>Total</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Orders}}
+        <tr>
+            <td><a href="/order/{{.ID}}">#{{.ID}}</a></td>
+            <td>Mesa {{.TableNum}}</td>
+            <td>{{.ItemCount}} items</td>
+            <td>${{printf "%.2f" .Total}}</td>
+            <td>{{formatDate .CreatedAt}}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" hx-get="/history/report/{{.ID}}" hx-swap="none">
+                    <i class="bi bi-file-earmark-text"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" hx-post="/order/{{.ID}}/duplicate" hx-swap="none">
+                    <i class="bi bi-copy"></i>
+                </button>
+            </td>
+        </tr>
+        {{else}}
+        <tr>
+            <td colspan="6" class="text-center py-4">No hay órdenes en este período</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>

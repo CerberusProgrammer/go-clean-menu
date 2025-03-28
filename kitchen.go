@@ -31,9 +31,10 @@ func GetKitchenOrders(c *fiber.Ctx) error {
 		Preload("Items.Product").
 		Find(&pendingOrders)
 
+	// Add the empty string as the third parameter to render without layout
 	return c.Render("partials/kitchen_orders", fiber.Map{
 		"Orders": pendingOrders,
-	})
+	}, "") // This empty string disables the layout
 }
 
 // ToggleItemStatus marca/desmarca un producto como listo

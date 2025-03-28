@@ -1,0 +1,18 @@
+templates/index.html - Dashboard principal
+templates/dashboard.html - Dashboard con estadísticas
+templates/menu.html - Administración del menú
+templates/orders.html - Lista de órdenes activas
+templates/order.html - Detalle de una orden específica
+templates/kitchen.html - Vista para la cocina
+templates/tables.html - Administración de mesas
+templates/history.html - Historial de órdenes
+templates/settings.html - Configuraciones del sistema
+templates/partials/order_items.html - Parcial para los elementos de una orden
+templates/partials/product_list.html - Parcial para la lista de productos
+templates/partials/category_form.html - Parcial para el formulario de categorías
+templates/partials/product_form.html - Parcial para el formulario de productos
+templates/partials/kitchen_orders.html - Parcial para órdenes en cocina
+templates/partials/order_history.html - Parcial para historial de órdenes
+templates/partials/table_grid.html - Parcial para la cuadrícula de mesas
+templates/partials/backup_list.html - Parcial para la lista de respaldos
+templates/partials/category_list.html - Parcial para la lista de categorías

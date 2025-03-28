@@ -22,7 +22,6 @@ services:
       - resto-network
     volumes:
       - ./templates:/app/templates
-  
   # Servicio de base de datos
   db:
     image: postgres:15-alpine

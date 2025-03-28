@@ -1,36 +1,56 @@
-{{if .Order.Items}}
-<ul class="list-group list-group-flush">
-    {{range .Order.Items}}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-            <div class="d-flex align-items-center">
-                <span class="badge bg-light text-dark rounded-pill me-2">{{.Quantity}}x</span>
-                <h6 class="mb-0">{{.Product.Name}}</h6>
-            </div>
-            <p class="mb-0 text-muted small">{{.Product.Description}}</p>
-            {{if .Notes}}
-            <small class="text-primary"><i class="bi bi-info-circle me-1"></i>{{.Notes}}</small>
-            {{end}}
-        </div>
-        <div class="d-flex flex-column align-items-end">
-            <span class="mb-2">${{printf "%.2f" (multiply .Product.Price .Quantity)}}</span>
-            {{if eq $.Order.Status "pending"}}
-            <button class="btn btn-sm btn-outline-danger" hx-delete="/order/{{$.Order.ID}}/item/{{.ID}}"
-                hx-target="#order-items" hx-confirm="¿Eliminar este producto de la orden?">
-                <i class="bi bi-trash"></i>
-            </button>
-            {{end}}
-        </div>
-    </li>
-    {{end}}
-</ul>
-<div class="p-3 text-end">
-    <h5 class="mb-0">Total: ${{printf "%.2f" .Order.Total}}</h5>
+<div class="macos-card mb-4">
+    <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">Ítems de la orden</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>Cant.</th>
+                    <th>Subtotal</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Order.Items}}
+                <tr>
+                    <td>
+                        <strong>{{.Product.Name}}</strong>
+                        {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
+                    </td>
+                    <td>${{printf "%.2f" .Product.Price}}</td>
+                    <td>{{.Quantity}}</td>
+                    <td>${{printf "%.2f" (multiply .Product.Price .Quantity)}}</td>
+                    <td>
+                        {{if .IsReady}}
+                        <span class="badge bg-success">Listo</span>
+                        {{else}}
+                        <span class="badge bg-secondary">Pendiente</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" hx-delete="/order/{{$.Order.ID}}/item/{{.ID}}"
+                            hx-target="#order-items" hx-confirm="¿Eliminar este producto de la orden?">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="6" class="text-center py-4">No hay productos en esta orden</td>
+                </tr>
+                {{end}}
+            </tbody>
+            <tfoot class="table-group-divider">
+                <tr>
+                    <th colspan="3" class="text-end">Total:</th>
+                    <th>${{printf "%.2f" .Order.Total}}</th>
+                    <th colspan="2"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 </div>
-{{else}}
-<div class="p-4 text-center">
-    <i class="bi bi-cart4 fs-1 text-muted mb-3"></i>
-    <h5>No hay productos en esta orden aún</h5>
-    <p class="text-muted">Añade productos utilizando el formulario a continuación</p>
-</div>
-{{end}}

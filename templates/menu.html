@@ -1,124 +1,178 @@
-<div>
-    <h1 class="page-title"><i class="bi bi-journal-text"></i> {{.Title}}</h1>
-
-    <div class="row mb-4">
-        <!-- Estadísticas del menú -->
-        <div class="col-md-4">
-            <div class="macos-card stats-card">
-                <h2>{{.ProductCount}}</h2>
-                <p>Productos en el menú</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="macos-card stats-card">
-                <h2>{{.CategoryCount}}</h2>
-                <p>Categorías disponibles</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="macos-card stats-card">
-                <div class="d-flex justify-content-around">
-                    <button class="btn macos-btn macos-btn-primary" hx-get="/forms/category" hx-target="#modalContent"
-                        hx-trigger="click" data-bs-toggle="modal" data-bs-target="#mainModal">
-                        <i class="bi bi-folder-plus"></i> Nueva Categoría
-                    </button>
-                    <button class="btn macos-btn macos-btn-primary" hx-get="/products/form" hx-target="#modalContent"
-                        hx-trigger="click" data-bs-toggle="modal" data-bs-target="#mainModal">
-                        <i class="bi bi-plus-circle"></i> Nuevo Producto
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filtros de productos -->
-    <div class="macos-card mb-4 p-3">
-        <div class="row">
-            <div class="col-md-3">
-                <select class="form-select" hx-get="/products" hx-target="#productList" hx-trigger="change"
-                    name="category">
-                    <option value="all">Todas las categorías</option>
-                    {{range .Categories}}
-                    <option value="{{.}}">{{.}}</option>
-                    {{end}}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Buscar productos..." hx-get="/products"
-                        hx-trigger="keyup changed delay:500ms" hx-target="#productList" name="search">
-                    <button class="btn btn-outline-secondary" type="button">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select" hx-get="/products" hx-target="#productList" hx-trigger="change"
-                    name="availability">
-                    <option value="all">Disponibilidad</option>
-                    <option value="available">Disponibles</option>
-                    <option value="unavailable">No disponibles</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" hx-get="/products" hx-target="#productList" hx-trigger="change" name="sort">
-                    <option value="name">Ordenar por nombre</option>
-                    <option value="price">Ordenar por precio</option>
-                    <option value="category">Ordenar por categoría</option>
-                    <option value="created_at">Ordenar por fecha</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contenedor para la lista de productos -->
-    <div id="productList" hx-get="/products" hx-trigger="load, refreshProducts from:body">
-        <!-- Aquí se cargará la lista de productos -->
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <h1 class="page-title m-0"><i class="bi bi-journal-text"></i> Administración de Menú</h1>
+    <div>
+        <button class="btn macos-btn macos-btn-primary" hx-get="/forms/category" hx-target="#modalContent">
+            <i class="bi bi-folder-plus me-2"></i>Nueva Categoría
+        </button>
+        <button class="btn macos-btn macos-btn-primary" hx-get="/products/form" hx-target="#modalContent">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Producto
+        </button>
     </div>
 </div>
 
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="macos-card stats-card">
+            <h2>{{.ProductCount}}</h2>
+            <p>Productos</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="macos-card stats-card">
+            <h2>{{.CategoryCount}}</h2>
+            <p>Categorías</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="macos-card stats-card">
+            <h2>{{if .TopProducts}}{{index .TopProducts 0 "Name"}}{{else}}N/A{{end}}</h2>
+            <p>Producto más vendido</p>
+        </div>
+    </div>
+</div>
+
+<div class="macos-card p-3 mb-4">
+    <h5 class="mb-3">Filtrar productos</h5>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <select class="form-select" name="category" hx-get="/products" hx-target="#productList"
+                hx-include="[name='search'],[name='availability'],[name='sort'],[name='order']">
+                <option value="all">Todas las categorías</option>
+                {{range .Categories}}
+                <option value="{{.}}">{{.}}</option>
+                {{end}}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" name="availability" hx-get="/products" hx-target="#productList"
+                hx-include="[name='category'],[name='search'],[name='sort'],[name='order']">
+                <option value="all">Todos</option>
+                <option value="available">Disponibles</option>
+                <option value="unavailable">No disponibles</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" class="form-control" name="search" placeholder="Buscar..." hx-get="/products"
+                    hx-target="#productList" hx-trigger="keyup changed delay:500ms"
+                    hx-include="[name='category'],[name='availability'],[name='sort'],[name='order']">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="productList" class="macos-card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0">Lista de Productos</h5>
+        <div>
+            <select class="form-select form-select-sm d-inline-block w-auto" name="sort" hx-get="/products"
+                hx-target="#productList"
+                hx-include="[name='category'],[name='search'],[name='availability'],[name='order']">
+                <option value="name">Nombre</option>
+                <option value="price">Precio</option>
+                <option value="category">Categoría</option>
+            </select>
+            <select class="form-select form-select-sm d-inline-block w-auto ms-2" name="order" hx-get="/products"
+                hx-target="#productList"
+                hx-include="[name='category'],[name='search'],[name='availability'],[name='sort']">
+                <option value="asc">Ascendente</option>
+                <option value="desc">Descendente</option>
+            </select>
+        </div>
+    </div>
+
+    <form id="bulkActionForm" hx-post="/products/bulk" hx-target="#productList">
+        <div class="mb-3">
+            <select name="action" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="">Acciones masivas</option>
+                <option value="enable">Habilitar</option>
+                <option value="disable">Deshabilitar</option>
+                <option value="delete">Eliminar</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-secondary ms-2">Aplicar</button>
+        </div>
+
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Products}}
+                <tr>
+                    <td><input type="checkbox" name="product_ids" value="{{.ID}}"></td>
+                    <td>{{.Name}}</td>
+                    <td>{{.Category}}</td>
+                    <td>${{printf "%.2f" .Price}}</td>
+                    <td>
+                        {{if .IsAvailable}}
+                        <span class="badge bg-success">Disponible</span>
+                        {{else}}
+                        <span class="badge bg-danger">No disponible</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" hx-get="/products/{{.ID}}/edit"
+                            hx-target="#modalContent">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" hx-delete="/products/{{.ID}}"
+                            hx-target="#productList" hx-confirm="¿Eliminar este producto?">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </form>
+</div>
+
 <!-- Modal para formularios -->
-<div class="modal fade" id="mainModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="formModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Formulario</h5>
+                <h5 class="modal-title" id="modalTitle">Formulario</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div id="modalContent">
-                    <!-- Aquí se cargarán los formularios -->
-                </div>
-            </div>
+            <div class="modal-body" id="modalContent"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // Escuchar eventos de cierre de modal
-    document.body.addEventListener('closeModal', function () {
-        var modalElement = document.getElementById('mainModal');
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) {
-            modal.hide();
+    // Mostrar modal cuando se carga contenido
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (e.detail.target.id === 'modalContent') {
+            const modal = new bootstrap.Modal(document.getElementById('formModal'));
+            modal.show();
         }
     });
 
-    // Escuchar eventos para refrescar categorías
-    document.body.addEventListener('refreshCategories', function () {
-        // Si hay un selector de categorías, refrescarlo
-        const categorySelects = document.querySelectorAll('select[name="category"]');
-        if (categorySelects.length > 0) {
-            htmx.ajax('GET', '/forms/category', { target: '#modalContent' });
-            htmx.ajax('GET', '/products', { target: '#productList' });
+    // Cerrar modal tras operaciones exitosas
+    document.body.addEventListener('htmx:responseHeaders', function (e) {
+        if (e.detail.xhr.getResponseHeader('HX-Trigger') &&
+            e.detail.xhr.getResponseHeader('HX-Trigger').includes('closeModal')) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
+            if (modal) modal.hide();
         }
     });
 
-    // Inicializar funcionamiento de toasts desde eventos HTMX
-    document.body.addEventListener('showToast', function (e) {
-        const detail = JSON.parse(e.detail.xhr.response);
-        if (detail && detail.message) {
-            showToast(detail.message, detail.type || 'info');
-        }
+    // Seleccionar todos los productos
+    document.getElementById('selectAll').addEventListener('change', function () {
+        const isChecked = this.checked;
+        document.querySelectorAll('input[name="product_ids"]').forEach(checkbox => {
+            checkbox.checked = isChecked;
+        });
     });
 </script>

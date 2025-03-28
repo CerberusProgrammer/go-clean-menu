@@ -2,27 +2,24 @@
     <h5 class="modal-title">Nueva Categoría</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
-<div class="modal-body">
-    <form hx-post="/categories" hx-target="#modalContent">
+<form hx-post="/categories" hx-target="#categories-list">
+    <div class="modal-body">
         <div class="mb-3">
-            <label for="categoryName" class="form-label">Nombre de la categoría</label>
-            <input type="text" class="form-control" id="categoryName" name="name" required>
+            <label for="name" class="form-label">Nombre de la categoría</label>
+            <input type="text" class="form-control" id="name" name="name" required>
         </div>
+
         <div class="mb-3">
-            <label class="form-label">Categorías existentes:</label>
-            <div id="categoryList">
-                <ul class="list-group">
-                    {{range .Categories}}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{.}}
-                    </li>
-                    {{end}}
-                </ul>
-            </div>
+            <h6>Categorías actuales</h6>
+            <ul class="list-group">
+                {{range .Categories}}
+                <li class="list-group-item">{{.}}</li>
+                {{end}}
+            </ul>
         </div>
-        <div class="d-flex justify-content-end">
-            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn macos-btn macos-btn-primary">Guardar</button>
-        </div>
-    </form>
-</div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn macos-btn macos-btn-primary">Crear</button>
+    </div>
+</form>
