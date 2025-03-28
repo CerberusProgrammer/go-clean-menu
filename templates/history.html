@@ -1,0 +1,85 @@
+<div class="page-title">
+    <i class="bi bi-clock-history"></i> Historial de Órdenes
+</div>
+
+<div class="macos-card mb-4 p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Filtros</h5>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-2" hx-get="/history/today" hx-target="#orderHistory">
+                Hoy
+            </button>
+            <button class="btn btn-outline-secondary btn-sm me-2" hx-get="/history/week" hx-target="#orderHistory">
+                Esta Semana
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" hx-get="/history/month" hx-target="#orderHistory">
+                Este Mes
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Desde</label>
+            <input type="date" class="form-control" id="startDate">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Hasta</label>
+            <input type="date" class="form-control" id="endDate">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-outline-secondary w-100" id="filterDates" hx-get="/history/custom"
+                hx-target="#orderHistory" hx-include="#startDate,#endDate">
+                Aplicar Filtro
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="orderHistory" class="macos-card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Órdenes Completadas</h5>
+        <span class="text-secondary">Total: {{len .Orders}} órdenes</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Mesa</th>
+                    <th>Fecha</th>
+                    <th>Productos</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Orders}}
+                {{range .Orders}}
+                <tr>
+                    <td>#{{.ID}}</td>
+                    <td>{{.TableNum}}</td>
+                    <td>{{formatDate .CreatedAt}}</td>
+                    <td>{{.ItemCount}} items</td>
+                    <td>${{printf "%.2f" .Total}}</td>
+                    <td>
+                        <a href="/order/{{.ID}}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-secondary ms-1" hx-post="/order/{{.ID}}/print"
+                            hx-swap="none">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                    </td>
+                </tr>
+                {{end}}
+                {{else}}
+                <tr>
+                    <td colspan="6" class="text-center py-3">No hay órdenes en el período seleccionado</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>

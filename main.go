@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -77,9 +78,17 @@ func main() {
 	// Configurar engine de plantillas
 	engine := html.New("./templates", ".html")
 
-	// Añadir función multiply para usar en templates
+	// Añadir funciones para usar en templates
 	engine.AddFunc("multiply", func(a float64, b int) float64 {
 		return a * float64(b)
+	})
+
+	engine.AddFunc("formatDate", func(t time.Time) string {
+		return t.Format("02/01/2006")
+	})
+
+	engine.AddFunc("formatTime", func(t time.Time) string {
+		return t.Format("15:04")
 	})
 
 	// Crear aplicación Fiber
@@ -95,10 +104,21 @@ func main() {
 	// Rutas estáticas
 	app.Static("/static", "./static")
 
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("CurrentTime", time.Now().Format("02/01/2006 15:04"))
+		return c.Next()
+	})
+
 	// Rutas
-	app.Get("/", HomeHandler)
+	app.Get("/", DashboardHandler) // Dashboard como página principal
+	app.Get("/menu", MenuHandler)
+	app.Get("/kitchen", KitchenHandler)
+	app.Get("/history", HistoryHandler)
+	app.Get("/settings", SettingsHandler)
+
 	app.Get("/products", GetProducts)
 	app.Get("/products/category/:category", GetProductsByCategory)
+
 	app.Post("/orders", CreateOrder)
 	app.Get("/order/:id", GetOrder)
 	app.Post("/order/:id/add-item", AddItemToOrder)

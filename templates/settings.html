@@ -1,0 +1,124 @@
+<div class="page-title">
+    <i class="bi bi-gear"></i> Configuración
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="macos-card p-4">
+            <h5 class="mb-3">Información del Restaurante</h5>
+            <form hx-put="/settings/restaurant" hx-swap="none">
+                <div class="mb-3">
+                    <label class="form-label">Nombre del Restaurante</label>
+                    <input type="text" class="form-control" name="name" value="{{.Settings.RestaurantName}}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Dirección</label>
+                    <input type="text" class="form-control" name="address" value="{{.Settings.Address}}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" class="form-control" name="phone" value="{{.Settings.Phone}}">
+                </div>
+                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="macos-card p-4">
+            <h5 class="mb-3">Configuración de Impresora</h5>
+            <form hx-put="/settings/printer" hx-swap="none">
+                <div class="mb-3">
+                    <label class="form-label">Impresora Predeterminada</label>
+                    <select class="form-select" name="default_printer">
+                        <option value="thermal1" {{if eq .Settings.DefaultPrinter "thermal1" }}selected{{end}}>
+                            Impresora Térmica - Cocina
+                        </option>
+                        <option value="thermal2" {{if eq .Settings.DefaultPrinter "thermal2" }}selected{{end}}>
+                            Impresora Térmica - Barra
+                        </option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" name="auto_print" {{if
+                            .Settings.AutoPrint}}checked{{end}}>
+                        <label class="form-check-label">Impresión automática</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="macos-card p-4">
+            <h5 class="mb-3">Mesas</h5>
+            <div class="mb-3">
+                <label class="form-label">Número de Mesas</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="tableCount" value="{{.Settings.TableCount}}" min="1">
+                    <button class="btn btn-outline-secondary" hx-put="/settings/tables" hx-include="#tableCount"
+                        hx-swap="none">Actualizar</button>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="row g-2">
+                    {{range $i := .Tables}}
+                    <div class="col-2">
+                        <div
+                            class="border rounded text-center py-2 {{if .Occupied}}bg-warning-subtle{{else}}bg-light{{end}}">
+                            {{.Number}}
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="macos-card p-4">
+            <h5 class="mb-3">Configuración de Aplicación</h5>
+            <form hx-put="/settings/app" hx-swap="none">
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" name="dark_mode" {{if
+                            .Settings.DarkMode}}checked{{end}}>
+                        <label class="form-check-label">Modo Oscuro</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" name="auto_refresh" {{if
+                            .Settings.AutoRefresh}}checked{{end}}>
+                        <label class="form-check-label">Actualizar automáticamente</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Idioma</label>
+                    <select class="form-select" name="language">
+                        <option value="es" {{if eq .Settings.Language "es" }}selected{{end}}>Español</option>
+                        <option value="en" {{if eq .Settings.Language "en" }}selected{{end}}>English</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-12 mb-4">
+        <div class="macos-card p-4">
+            <h5 class="mb-3">Respaldo de Datos</h5>
+            <div class="d-flex gap-2">
+                <button class="btn macos-btn macos-btn-primary" hx-post="/backup" hx-swap="none">
+                    <i class="bi bi-download me-1"></i> Crear Copia de Seguridad
+                </button>
+                <button class="btn macos-btn" hx-get="/backup/list" hx-target="#backupList">
+                    <i class="bi bi-list me-1"></i> Ver Copias de Seguridad
+                </button>
+            </div>
+            <div id="backupList" class="mt-3"></div>
+        </div>
+    </div>
+</div>
