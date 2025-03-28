@@ -78,18 +78,20 @@
 
         <div class="macos-card p-3">
             <h5 class="mb-3">Resumen de Ventas</h5>
-            <canvas id="salesChart" height="150"></canvas>
+            <div style="height: 150px; position: relative;">
+                <canvas id="salesChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Reemplazar esta sección de script -->
 <script>
-    // Part to replace in dashboard.html
     const chartData = {
         labels: {{.ChartLabels }},
     values: { {.ChartValues } }
-};
+    };
 
     // Crear gráfico
     const ctx = document.getElementById('salesChart').getContext('2d');
@@ -111,23 +113,26 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        maxTicksLimit: 5
                     }
                 },
                 x: {
                     grid: {
                         display: false
                     }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
                 }
             }
         }

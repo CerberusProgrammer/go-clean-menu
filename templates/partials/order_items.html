@@ -14,7 +14,7 @@
         </div>
         <div class="d-flex flex-column align-items-end">
             <span class="mb-2">${{printf "%.2f" (multiply .Product.Price .Quantity)}}</span>
-            {{if ne $.Order.Status "completed"}}
+            {{if eq $.Order.Status "pending"}}
             <button class="btn btn-sm btn-outline-danger" hx-delete="/order/{{$.Order.ID}}/item/{{.ID}}"
                 hx-target="#order-items" hx-confirm="¿Eliminar este producto de la orden?">
                 <i class="bi bi-trash"></i>
@@ -29,7 +29,7 @@
 </div>
 {{else}}
 <div class="p-4 text-center">
-    <i class="bi bi-cart4 fs-1 text-muted mb-2"></i>
+    <i class="bi bi-cart4 fs-1 text-muted mb-3"></i>
     <h5>No hay productos en esta orden aún</h5>
     <p class="text-muted">Añade productos utilizando el formulario a continuación</p>
 </div>

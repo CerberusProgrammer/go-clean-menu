@@ -1,0 +1,46 @@
+{{range .Orders}}
+<div class="col-md-6 mb-4">
+    <div class="macos-card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Mesa #{{.TableNum}}</h5>
+            <div>
+                <span class="badge bg-warning me-2">{{formatTime .CreatedAt}}</span>
+                <span class="badge bg-secondary">Orden #{{.ID}}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                {{range .Items}}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                    <div>
+                        <span class="badge bg-light text-dark me-2">{{.Quantity}}x</span>
+                        <strong>{{.Product.Name}}</strong>
+                        {{if .Notes}}
+                        <p class="text-muted small mb-0 mt-1"><i class="bi bi-info-circle me-1"></i>{{.Notes}}</p>
+                        {{end}}
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" {{if .IsReady}}checked{{end}}
+                            hx-put="/kitchen/items/{{.ID}}/toggle" hx-swap="none">
+                    </div>
+                </li>
+                {{end}}
+            </ul>
+        </div>
+        <div class="card-footer bg-light">
+            <button class="btn btn-success btn-sm w-100" hx-post="/order/{{.ID}}/complete" hx-target="#kitchenOrders"
+                hx-swap="outerHTML">
+                Orden Completada
+            </button>
+        </div>
+    </div>
+</div>
+{{else}}
+<div class="col-12">
+    <div class="macos-card p-4 text-center">
+        <i class="bi bi-check-circle fs-1 text-success mb-2"></i>
+        <h4>¡No hay órdenes pendientes!</h4>
+        <p class="text-muted">Todas las órdenes han sido completadas</p>
+    </div>
+</div>
+{{end}}

@@ -1,0 +1,142 @@
+<div class="page-title">
+    <i class="bi bi-grid-3x3"></i> Administración de Mesas
+</div>
+
+<div class="row mb-4">
+    <!-- Panel de estadísticas -->
+    <div class="col-md-4">
+        <div class="macos-card stats-card">
+            <h2 id="total-tables">{{len .Tables}}</h2>
+            <p>Mesas Totales</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="macos-card stats-card">
+            <h2 id="available-tables">{{len .Tables}}</h2>
+            <p>Mesas Disponibles</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="macos-card stats-card">
+            <h2 id="occupied-tables">0</h2>
+            <p>Mesas Ocupadas</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Panel izquierdo: Lista de mesas -->
+    <div class="col-md-8">
+        <div class="macos-card mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Mesas del Restaurante</h5>
+                <button class="btn btn-sm macos-btn" hx-post="/tables/reset" hx-target="#tables-grid"
+                    hx-confirm="¿Restablecer todas las mesas? Esto eliminará las mesas que no estén ocupadas y creará la cantidad configurada.">
+                    <i class="bi bi-arrow-repeat"></i> Restablecer Mesas
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="tables-grid" class="row g-3">
+                    {{if .Tables}}
+                    {{range .Tables}}
+                    <div class="col-md-3 col-sm-4 col-6">
+                        <div class="macos-card {{if .Occupied}}bg-warning-subtle{{else}}bg-light{{end}} h-100">
+                            <div class="card-body text-center">
+                                <h1 class="display-4">{{.Number}}</h1>
+                                <div class="mb-2">
+                                    <span class="badge {{if .Occupied}}bg-warning{{else}}bg-success{{end}}">
+                                        {{if .Occupied}}Ocupada{{else}}Disponible{{end}}
+                                    </span>
+                                </div>
+                                <div class="small text-muted mb-2">Capacidad: {{.Capacity}} personas</div>
+                                {{if not .Occupied}}
+                                <button class="btn btn-sm btn-outline-danger" hx-delete="/tables/{{.ID}}"
+                                    hx-target="#tables-grid" hx-confirm="¿Eliminar mesa #{{.Number}}?">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {{else}}
+                                <a href="/order/{{.OrderID}}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Ver Orden
+                                </a>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                    {{else}}
+                    <div class="col-12 text-center p-4">
+                        <i class="bi bi-table text-muted fs-1 mb-3"></i>
+                        <h5>No hay mesas configuradas</h5>
+                        <p class="text-muted">Crea mesas utilizando el formulario a la derecha</p>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel derecho: Crear mesa -->
+    <div class="col-md-4">
+        <div class="macos-card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Agregar Nueva Mesa</h5>
+            </div>
+            <div class="card-body">
+                <form hx-post="/tables" hx-target="#tables-grid">
+                    <div class="mb-3">
+                        <label class="form-label">Número de Mesa</label>
+                        <input type="number" name="table_num" class="form-control" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Capacidad</label>
+                        <select name="capacity" class="form-select">
+                            <option value="2">2 personas</option>
+                            <option value="4" selected>4 personas</option>
+                            <option value="6">6 personas</option>
+                            <option value="8">8 personas</option>
+                            <option value="10">10 personas</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn macos-btn macos-btn-primary w-100">
+                        <i class="bi bi-plus-circle me-1"></i> Crear Mesa
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="macos-card mt-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Información</h5>
+            </div>
+            <div class="card-body">
+                <p>Las mesas son necesarias para crear órdenes. Cada mesa puede estar libre u ocupada por una orden
+                    activa.</p>
+                <p class="mb-0">Mesas configuradas por defecto: <strong>{{.Settings.TableCount}}</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Calcular estadísticas
+        function updateStats() {
+            const tables = document.querySelectorAll("#tables-grid .macos-card");
+            const occupiedTables = document.querySelectorAll("#tables-grid .bg-warning-subtle").length;
+
+            document.getElementById("total-tables").textContent = tables.length;
+            document.getElementById("occupied-tables").textContent = occupiedTables;
+            document.getElementById("available-tables").textContent = tables.length - occupiedTables;
+        }
+
+        // Actualizar estadísticas inicialmente
+        updateStats();
+
+        // Actualizar estadísticas después de cada cambio en la lista de mesas
+        document.body.addEventListener("htmx:afterSwap", function (evt) {
+            if (evt.detail.target.id === "tables-grid") {
+                updateStats();
+            }
+        });
+    });
+</script>

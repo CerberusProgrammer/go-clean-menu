@@ -2,14 +2,29 @@
     {{if .Products}}
     {{range .Products}}
     <div class="col-md-6 mb-3">
-        <div class="card product-card h-100">
+        <div class="macos-card product-card h-100">
             <div class="card-body">
-                <h5 class="card-title">{{.Name}}</h5>
-                <p class="card-text">{{.Description}}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong class="text-primary">${{printf "%.2f" .Price}}</strong>
-                    <span class="badge bg-secondary">{{.Category}}</span>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">{{.Name}}</h5>
+                    <span class="badge {{if .IsAvailable}}bg-success{{else}}bg-danger{{end}} product-badge">
+                        {{if .IsAvailable}}Disponible{{else}}No disponible{{end}}
+                    </span>
                 </div>
+                <p class="card-text text-muted">{{.Description}}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-light text-dark">{{.Category}}</span>
+                    <strong class="text-primary">${{printf "%.2f" .Price}}</strong>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
+                <button class="btn btn-sm macos-btn" hx-get="/products/{{.ID}}/edit" hx-target="#editModal"
+                    data-bs-toggle="modal" data-bs-target="#editModal">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" hx-delete="/products/{{.ID}}" hx-target="#productList"
+                    hx-confirm="¿Estás seguro de eliminar este producto?">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
         </div>
     </div>

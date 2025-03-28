@@ -1,0 +1,101 @@
+<div class="page-title">
+    <i class="bi bi-receipt-cutoff"></i> Órdenes Activas
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Órdenes en proceso</h4>
+    <button type="button" class="btn macos-btn macos-btn-primary" data-bs-toggle="modal"
+        data-bs-target="#newOrderModal">
+        <i class="bi bi-plus-circle me-1"></i> Nueva Orden
+    </button>
+</div>
+
+<div class="row">
+    {{if .Orders}}
+    {{range .Orders}}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="macos-card h-100">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0">Mesa #{{.TableNum}}</h5>
+                <span class="badge bg-warning">Orden #{{.ID}}</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div><i class="bi bi-clock me-2"></i>{{formatTime .CreatedAt}}</div>
+                    <div class="badge bg-light text-dark">{{len .Items}} productos</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="progress" style="height: 8px; border-radius: 4px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100"
+                            aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Total:</span>
+                    <span class="fs-5 fw-bold">${{printf "%.2f" .Total}}</span>
+                </div>
+            </div>
+            <div class="card-footer bg-light">
+                <div class="d-flex gap-2">
+                    <a href="/order/{{.ID}}" class="btn macos-btn flex-grow-1">
+                        <i class="bi bi-eye me-1"></i> Detalles
+                    </a>
+                    <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.ID}}/complete"
+                        hx-confirm="¿Completar esta orden?" hx-redirect="/orders">
+                        <i class="bi bi-check-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="col-12">
+        <div class="macos-card p-5 text-center">
+            <i class="bi bi-check-circle fs-1 text-success mb-3"></i>
+            <h4>¡No hay órdenes activas!</h4>
+            <p class="text-muted mb-4">Todas las órdenes han sido completadas</p>
+            <button type="button" class="btn macos-btn macos-btn-primary" data-bs-toggle="modal"
+                data-bs-target="#newOrderModal">
+                <i class="bi bi-plus-circle me-1"></i> Crear Nueva Orden
+            </button>
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- Modal para crear nueva orden -->
+<div class="modal fade" id="newOrderModal" tabindex="-1" aria-labelledby="newOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newOrderModalLabel">Nueva Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form hx-post="/orders" hx-redirect="/orders">
+                    <div class="mb-3">
+                        <label for="table_num" class="form-label">Número de Mesa</label>
+                        <select class="form-select" id="table_num" name="table_num" required>
+                            <option value="" selected disabled>Seleccionar mesa</option>
+                            <!-- Las opciones se llenarían dinámicamente con las mesas disponibles -->
+                            <option value="1">Mesa 1</option>
+                            <option value="2">Mesa 2</option>
+                            <option value="3">Mesa 3</option>
+                            <option value="4">Mesa 4</option>
+                            <option value="5">Mesa 5</option>
+                            <option value="6">Mesa 6</option>
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn macos-btn macos-btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Crear Orden
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,33 @@
+{{if .Tables}}
+{{range .Tables}}
+<div class="col-md-3 col-sm-4 col-6">
+    <div class="macos-card {{if .Occupied}}bg-warning-subtle{{else}}bg-light{{end}} h-100">
+        <div class="card-body text-center">
+            <h1 class="display-4">{{.Number}}</h1>
+            <div class="mb-2">
+                <span class="badge {{if .Occupied}}bg-warning{{else}}bg-success{{end}}">
+                    {{if .Occupied}}Ocupada{{else}}Disponible{{end}}
+                </span>
+            </div>
+            <div class="small text-muted mb-2">Capacidad: {{.Capacity}} personas</div>
+            {{if not .Occupied}}
+            <button class="btn btn-sm btn-outline-danger" hx-delete="/tables/{{.ID}}" hx-target="#tables-grid"
+                hx-confirm="¿Eliminar mesa #{{.Number}}?">
+                <i class="bi bi-trash"></i>
+            </button>
+            {{else}}
+            <a href="/order/{{.OrderID}}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye"></i> Ver Orden
+            </a>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
+{{else}}
+<div class="col-12 text-center p-4">
+    <i class="bi bi-table text-muted fs-1 mb-3"></i>
+    <h5>No hay mesas configuradas</h5>
+    <p class="text-muted">Crea mesas utilizando el formulario a la derecha</p>
+</div>
+{{end}}

@@ -1,0 +1,9 @@
+<div class="row g-2">
+    {{range $i := .Tables}}
+    <div class="col-2">
+        <div class="border rounded text-center py-2 {{if .Occupied}}bg-warning-subtle{{else}}bg-light{{end}}">
+            {{.Number}}
+        </div>
+    </div>
+    {{end}}
+</div>

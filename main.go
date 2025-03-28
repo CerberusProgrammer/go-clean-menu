@@ -17,7 +17,6 @@ import (
 
 var db *gorm.DB
 
-// initDatabase inicializa la conexión a la base de datos
 func initDatabase() {
 	var err error
 
@@ -35,7 +34,7 @@ func initDatabase() {
 	}
 
 	// Auto-migrar modelos
-	err = db.AutoMigrate(&Product{}, &Order{}, &OrderItem{})
+	err = db.AutoMigrate(&Product{}, &Category{}, &Order{}, &OrderItem{}, &Settings{}, &Table{}, &Backup{}, &User{})
 	if err != nil {
 		log.Fatalf("Error en auto-migración: %v", err)
 	}
@@ -45,6 +44,44 @@ func initDatabase() {
 	db.Model(&Product{}).Count(&count)
 	if count == 0 {
 		seedProducts()
+	}
+
+	// Inicializar configuración si no existe
+	var settings Settings
+	result := db.First(&settings)
+	if result.Error != nil {
+		// Crear configuración predeterminada
+		settings = Settings{
+			RestaurantName: "Resto",
+			Address:        "123 Calle Principal",
+			Phone:          "(555) 123-4567",
+			Email:          "contacto@resto.com",
+			DefaultPrinter: "thermal1",
+			AutoPrint:      true,
+			TableCount:     12,
+			DarkMode:       false,
+			AutoRefresh:    true,
+			Language:       "es",
+			TaxRate:        0.16,
+			CurrencySymbol: "$",
+		}
+		db.Create(&settings)
+	}
+
+	// Inicializar mesas si no existen
+	var tableCount int64
+	db.Model(&Table{}).Count(&tableCount)
+	if tableCount == 0 {
+		// Crear mesas predeterminadas
+		for i := 1; i <= settings.TableCount; i++ {
+			table := Table{
+				Number:   i,
+				Capacity: 4,
+				Occupied: false,
+			}
+			db.Create(&table)
+		}
+		log.Printf("Se inicializaron %d mesas", settings.TableCount)
 	}
 }
 
@@ -109,21 +146,65 @@ func main() {
 		return c.Next()
 	})
 
-	// Rutas
-	app.Get("/", DashboardHandler) // Dashboard como página principal
-	app.Get("/menu", MenuHandler)
-	app.Get("/kitchen", KitchenHandler)
-	app.Get("/history", HistoryHandler)
-	app.Get("/settings", SettingsHandler)
+	// Rutas del Dashboard
+	app.Get("/", DashboardHandler)
 
+	// Rutas de Productos
 	app.Get("/products", GetProducts)
 	app.Get("/products/category/:category", GetProductsByCategory)
+	app.Post("/products", CreateProduct)
+	app.Put("/products/:id", UpdateProduct)
+	app.Delete("/products/:id", DeleteProduct)
+	app.Get("/products/:id/edit", GetProductEditForm)
 
+	// Rutas de Categorías
+	app.Get("/forms/category", GetCategoryForm)
+	app.Post("/categories", CreateCategory)
+
+	// Rutas de Órdenes
+	app.Get("/orders", OrdersHandler)
 	app.Post("/orders", CreateOrder)
 	app.Get("/order/:id", GetOrder)
 	app.Post("/order/:id/add-item", AddItemToOrder)
 	app.Delete("/order/:id/item/:itemId", RemoveItemFromOrder)
 	app.Post("/order/:id/complete", CompleteOrder)
+	app.Delete("/order/:id", CancelOrder)
+	app.Post("/order/:id/print", PrintOrder)
+	app.Post("/order/:id/email", EmailOrder)
+	app.Post("/order/:id/duplicate", DuplicateOrder)
+
+	// Rutas de Cocina
+	app.Get("/kitchen", KitchenHandler)
+	app.Get("/kitchen/orders", GetKitchenOrders)
+	app.Put("/kitchen/items/:id/toggle", ToggleItemStatus)
+	app.Get("/kitchen/order/:id/status", GetOrderCompletionStatus)
+
+	// Rutas de Menu
+	app.Get("/menu", MenuHandler)
+
+	// Rutas de Historial
+	app.Get("/history", HistoryHandler)
+	app.Get("/history/today", GetTodayHistory)
+	app.Get("/history/week", GetWeekHistory)
+	app.Get("/history/month", GetMonthHistory)
+	app.Get("/history/custom", GetCustomHistory)
+	app.Get("/history/report/:id", GenerateOrderReport)
+
+	// Rutas de Configuración
+	app.Get("/settings", SettingsHandler)
+	app.Put("/settings/restaurant", UpdateRestaurantSettings)
+	app.Put("/settings/printer", UpdatePrinterSettings)
+	app.Put("/settings/tables", UpdateTableSettings)
+	app.Put("/settings/app", UpdateAppSettings)
+	app.Post("/backup", CreateBackup)
+	app.Get("/backup/list", GetBackupList)
+	app.Get("/backup/:id/download", DownloadBackup)
+
+	// Rutas de Mesas
+	app.Get("/tables", TablesHandler)
+	app.Post("/tables", CreateTable)
+	app.Delete("/tables/:id", DeleteTable)
+	app.Post("/tables/reset", ResetTables)
 
 	// Iniciar servidor
 	port := os.Getenv("PORT")
