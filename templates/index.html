@@ -32,7 +32,7 @@
                 <h3 class="card-title mb-0">Nueva Orden</h3>
             </div>
             <div class="card-body">
-                <form hx-post="/orders" hx-redirect="true">
+                <form hx-post="/orders" hx-swap="none">
                     <div class="mb-3">
                         <label for="table_num" class="form-label">Número de Mesa</label>
                         <input type="number" class="form-control" id="table_num" name="table_num" min="1" required>

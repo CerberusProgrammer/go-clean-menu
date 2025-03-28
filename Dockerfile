@@ -27,8 +27,8 @@ RUN apk add --no-cache tzdata ca-certificates postgresql-client
 # Copiar binario compilado desde el builder
 COPY --from=builder /app/app .
 
-# Copiar plantillas y scripts
-COPY templates /app/templates
+# Copiar plantillas y scripts asegurando que se copien las subcarpetas
+COPY templates/ /app/templates/
 COPY .env /app/.env
 
 # Agregar script para esperar PostgreSQL

@@ -50,7 +50,7 @@ func GetProductsByCategory(c *fiber.Ctx) error {
 	})
 }
 
-// CreateOrder crea una nueva orden
+// Modifica la función CreateOrder
 func CreateOrder(c *fiber.Ctx) error {
 	tableNum, err := strconv.Atoi(c.FormValue("table_num"))
 	if err != nil {
@@ -68,7 +68,39 @@ func CreateOrder(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Error al crear orden")
 	}
 
+	// Si es una solicitud HTMX, envía un header de redirección para HTMX
+	if c.Get("HX-Request") == "true" {
+		c.Set("HX-Redirect", "/order/"+strconv.Itoa(int(order.ID)))
+		return c.SendString("")
+	}
+
+	// Redirección normal para solicitudes no-HTMX
 	return c.Redirect("/order/" + strconv.Itoa(int(order.ID)))
+}
+
+// Modifica la función CompleteOrder
+func CompleteOrder(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
+	}
+
+	var order Order
+	if result := db.First(&order, id); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
+	}
+
+	order.Status = "completed"
+	db.Save(&order)
+
+	// Si es una solicitud HTMX, envía un header de redirección para HTMX
+	if c.Get("HX-Request") == "true" {
+		c.Set("HX-Redirect", "/")
+		return c.SendString("")
+	}
+
+	// Redirección normal para solicitudes no-HTMX
+	return c.Redirect("/")
 }
 
 // GetOrder obtiene los detalles de una orden
@@ -182,22 +214,4 @@ func RemoveItemFromOrder(c *fiber.Ctx) error {
 	return c.Render("partials/order_items", fiber.Map{
 		"Order": order,
 	})
-}
-
-// CompleteOrder marca una orden como completada
-func CompleteOrder(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
-	}
-
-	var order Order
-	if result := db.First(&order, id); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	order.Status = "completed"
-	db.Save(&order)
-
-	return c.Redirect("/")
 }

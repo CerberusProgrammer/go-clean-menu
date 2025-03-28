@@ -20,6 +20,8 @@ services:
     command: sh -c "./wait-for-postgres.sh && ./app"
     networks:
       - resto-network
+    volumes:
+      - ./templates:/app/templates
   
   # Servicio de base de datos
   db:

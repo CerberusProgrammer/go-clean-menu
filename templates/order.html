@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Orden #{{.Order.ID}} - Mesa {{.Order.TableNum}}</h2>
-    <span class="badge {{if eq .Order.Status " completed"}}bg-success{{else}}bg-warning{{end}}">{{.Order.Status}}</span>
+    <span class="badge {{if eq .Order.Status "completed"}}bg-success{{else}}bg-warning{{end}}">{{.Order.Status}}</span>
 </div>
 
 <div class="row">
@@ -47,8 +47,8 @@
         </div>
 
         <div class="mt-4">
-            <form hx-post="/order/{{.Order.ID}}/complete" hx-redirect="true">
-                <button type="submit" class="btn btn-success">Completar Orden</button>
+            <form hx-post="/order/{{.Order.ID}}/complete" hx-swap="none"> <button type="submit"
+                    class="btn btn-success">Completar Orden</button>
                 <a href="/" class="btn btn-secondary ms-2">Volver al Menú</a>
             </form>
         </div>
