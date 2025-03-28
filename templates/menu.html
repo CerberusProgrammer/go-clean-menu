@@ -1,89 +1,124 @@
-<div class="page-title">
-    <i class="bi bi-journal-text"></i> Administración de Menú
-</div>
+<div>
+    <h1 class="page-title"><i class="bi bi-journal-text"></i> {{.Title}}</h1>
 
-<div class="macos-card mb-4 p-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h5 class="mb-0">Categorías</h5>
-        </div>
-        <button class="btn macos-btn macos-btn-primary btn-sm" hx-get="/forms/category"
-            hx-target="#categoryFormContainer">
-            <i class="bi bi-plus-circle"></i> Nueva Categoría
-        </button>
-    </div>
-
-    <div id="categoryFormContainer"></div>
-
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="btn-group w-100">
-                <button class="btn btn-outline-secondary active" hx-get="/products" hx-target="#productList">
-                    Todos
-                </button>
-                {{range .Categories}}
-                <button class="btn btn-outline-secondary" hx-get="/products/category/{{.}}" hx-target="#productList">
-                    {{.}}
-                </button>
-                {{end}}
+    <div class="row mb-4">
+        <!-- Estadísticas del menú -->
+        <div class="col-md-4">
+            <div class="macos-card stats-card">
+                <h2>{{.ProductCount}}</h2>
+                <p>Productos en el menú</p>
             </div>
         </div>
+        <div class="col-md-4">
+            <div class="macos-card stats-card">
+                <h2>{{.CategoryCount}}</h2>
+                <p>Categorías disponibles</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="macos-card stats-card">
+                <div class="d-flex justify-content-around">
+                    <button class="btn macos-btn macos-btn-primary" hx-get="/forms/category" hx-target="#modalContent"
+                        hx-trigger="click" data-bs-toggle="modal" data-bs-target="#mainModal">
+                        <i class="bi bi-folder-plus"></i> Nueva Categoría
+                    </button>
+                    <button class="btn macos-btn macos-btn-primary" hx-get="/products/form" hx-target="#modalContent"
+                        hx-trigger="click" data-bs-toggle="modal" data-bs-target="#mainModal">
+                        <i class="bi bi-plus-circle"></i> Nuevo Producto
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="productList" hx-get="/products" hx-trigger="load" class="mt-4">
-        <!-- Contenido dinámico: Lista de productos -->
-    </div>
-</div>
-
-<div class="macos-card p-4">
-    <h5 class="mb-3">Agregar Nuevo Producto</h5>
-    <form hx-post="/products" hx-target="#productList" hx-swap="outerHTML">
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Nombre del Producto</label>
-                <input type="text" class="form-control" name="name" required>
-            </div>
+    <!-- Filtros de productos -->
+    <div class="macos-card mb-4 p-3">
+        <div class="row">
             <div class="col-md-3">
-                <label class="form-label">Precio ($)</label>
-                <input type="number" class="form-control" name="price" step="0.01" min="0" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Categoría</label>
-                <select class="form-select" name="category" required>
+                <select class="form-select" hx-get="/products" hx-target="#productList" hx-trigger="change"
+                    name="category">
+                    <option value="all">Todas las categorías</option>
                     {{range .Categories}}
                     <option value="{{.}}">{{.}}</option>
                     {{end}}
                 </select>
             </div>
+            <div class="col-md-4">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Buscar productos..." hx-get="/products"
+                        hx-trigger="keyup changed delay:500ms" hx-target="#productList" name="search">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" hx-get="/products" hx-target="#productList" hx-trigger="change"
+                    name="availability">
+                    <option value="all">Disponibilidad</option>
+                    <option value="available">Disponibles</option>
+                    <option value="unavailable">No disponibles</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" hx-get="/products" hx-target="#productList" hx-trigger="change" name="sort">
+                    <option value="name">Ordenar por nombre</option>
+                    <option value="price">Ordenar por precio</option>
+                    <option value="category">Ordenar por categoría</option>
+                    <option value="created_at">Ordenar por fecha</option>
+                </select>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Descripción</label>
-            <textarea class="form-control" name="description" rows="2"></textarea>
-        </div>
-        <div class="text-end">
-            <button type="submit" class="btn macos-btn macos-btn-primary">
-                <i class="bi bi-plus-circle me-1"></i> Agregar Producto
-            </button>
-        </div>
-    </form>
+    </div>
+
+    <!-- Contenedor para la lista de productos -->
+    <div id="productList" hx-get="/products" hx-trigger="load, refreshProducts from:body">
+        <!-- Aquí se cargará la lista de productos -->
+    </div>
 </div>
 
-<!-- Añadir al final del archivo -->
-<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+<!-- Modal para formularios -->
+<div class="modal fade" id="mainModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editModalLabel">Editar Producto</h5>
+                <h5 class="modal-title">Formulario</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- El contenido del formulario se cargará dinámicamente -->
-                <div class="d-flex justify-content-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
+                <div id="modalContent">
+                    <!-- Aquí se cargarán los formularios -->
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // Escuchar eventos de cierre de modal
+    document.body.addEventListener('closeModal', function () {
+        var modalElement = document.getElementById('mainModal');
+        var modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+    });
+
+    // Escuchar eventos para refrescar categorías
+    document.body.addEventListener('refreshCategories', function () {
+        // Si hay un selector de categorías, refrescarlo
+        const categorySelects = document.querySelectorAll('select[name="category"]');
+        if (categorySelects.length > 0) {
+            htmx.ajax('GET', '/forms/category', { target: '#modalContent' });
+            htmx.ajax('GET', '/products', { target: '#productList' });
+        }
+    });
+
+    // Inicializar funcionamiento de toasts desde eventos HTMX
+    document.body.addEventListener('showToast', function (e) {
+        const detail = JSON.parse(e.detail.xhr.response);
+        if (detail && detail.message) {
+            showToast(detail.message, detail.type || 'info');
+        }
+    });
+</script>

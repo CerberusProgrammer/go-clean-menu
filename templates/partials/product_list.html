@@ -1,39 +1,99 @@
-<div class="row">
-    {{if .Products}}
-    {{range .Products}}
-    <div class="col-md-6 mb-3">
-        <div class="macos-card product-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="card-title mb-0">{{.Name}}</h5>
-                    <span class="badge {{if .IsAvailable}}bg-success{{else}}bg-danger{{end}} product-badge">
-                        {{if .IsAvailable}}Disponible{{else}}No disponible{{end}}
-                    </span>
-                </div>
-                <p class="card-text text-muted">{{.Description}}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="badge bg-light text-dark">{{.Category}}</span>
-                    <strong class="text-primary">${{printf "%.2f" .Price}}</strong>
-                </div>
+<form id="bulkActionForm" hx-post="/bulk-action" hx-target="#productList">
+    <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectAllBtn">Seleccionar
+                    todos</button>
+                <select class="form-select form-select-sm d-inline-block w-auto" name="action">
+                    <option value="">Acciones en masa...</option>
+                    <option value="enable">Habilitar</option>
+                    <option value="disable">Deshabilitar</option>
+                    <option value="delete">Eliminar</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary ms-2" id="applyActionBtn"
+                    disabled>Aplicar</button>
             </div>
-            <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
-                <button class="btn btn-sm macos-btn" hx-get="/products/{{.ID}}/edit" hx-target="#editModal"
-                    data-bs-toggle="modal" data-bs-target="#editModal">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" hx-delete="/products/{{.ID}}" hx-target="#productList"
-                    hx-confirm="¿Estás seguro de eliminar este producto?">
-                    <i class="bi bi-trash"></i>
-                </button>
+            <div>
+                {{if eq (len .Products) 0}}
+                <span class="text-muted">No se encontraron productos</span>
+                {{else}}
+                <span class="text-muted">{{len .Products}} productos</span>
+                {{end}}
             </div>
         </div>
     </div>
-    {{end}}
-    {{else}}
-    <div class="col-12">
-        <div class="alert alert-info">
-            No hay productos disponibles en esta categoría.
+
+    <input type="hidden" name="product_ids" id="selectedProductIds" value="">
+
+    <div class="row">
+        {{range .Products}}
+        <div class="col-md-4 mb-3">
+            <div class="macos-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input product-checkbox" type="checkbox" value="{{.ID}}"
+                                id="product-{{.ID}}">
+                            <label class="form-check-label h5" for="product-{{.ID}}">
+                                {{.Name}}
+                            </label>
+                        </div>
+                        <div>
+                            {{if .IsAvailable}}
+                            <span class="badge bg-success product-badge">Disponible</span>
+                            {{else}}
+                            <span class="badge bg-secondary product-badge">No disponible</span>
+                            {{end}}
+                        </div>
+                    </div>
+                    <p class="text-muted mb-1">{{.Category}}</p>
+                    <p class="mb-4">{{.Description}}</p>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <h5 class="mb-0">${{printf "%.2f" .Price}}</h5>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" hx-get="/products/{{.ID}}/edit"
+                                hx-target="#modalContent" hx-trigger="click" data-bs-toggle="modal"
+                                data-bs-target="#mainModal">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" hx-delete="/products/{{.ID}}"
+                                hx-confirm="¿Seguro que deseas eliminar este producto?" hx-target="#productList">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+        {{end}}
     </div>
-    {{end}}
-</div>
+</form>
+
+<script>
+    // Funcionalidad para seleccionar todos los productos
+    document.getElementById('selectAllBtn').addEventListener('click', function () {
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        const allChecked = [...checkboxes].every(cb => cb.checked);
+
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+
+        updateSelectedIds();
+    });
+
+    // Actualizar los IDs seleccionados cuando cambian los checkboxes
+    document.querySelectorAll('.product-checkbox').forEach(function (checkbox) {
+        checkbox.addEventListener('change', updateSelectedIds);
+    });
+
+    // Función para actualizar el campo hidden con los IDs seleccionados
+    function updateSelectedIds() {
+        const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+        const ids = [...checkboxes].map(cb => cb.value);
+        document.getElementById('selectedProductIds').value = ids.join(',');
+
+        // Habilitar o deshabilitar el botón de aplicar acción
+        document.getElementById('applyActionBtn').disabled = ids.length === 0;
+    }
+</script>

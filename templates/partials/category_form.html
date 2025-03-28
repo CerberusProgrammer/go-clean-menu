@@ -1,17 +1,28 @@
-<div class="mb-3 p-3 border rounded bg-light">
-    <form hx-post="/categories" hx-target="#categoryFormContainer" hx-swap="outerHTML">
-        <div class="mb-2">
-            <label for="name" class="form-label">Nombre de la Categoría</label>
-            <input type="text" class="form-control" id="name" name="name" required>
+<div class="modal-header">
+    <h5 class="modal-title">Nueva Categoría</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <form hx-post="/categories" hx-target="#modalContent">
+        <div class="mb-3">
+            <label for="categoryName" class="form-label">Nombre de la categoría</label>
+            <input type="text" class="form-control" id="categoryName" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Categorías existentes:</label>
+            <div id="categoryList">
+                <ul class="list-group">
+                    {{range .Categories}}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{.}}
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
         </div>
         <div class="d-flex justify-content-end">
-            <button type="button" class="btn btn-outline-secondary me-2"
-                onclick="this.parentElement.parentElement.parentElement.outerHTML = ''">
-                Cancelar
-            </button>
-            <button type="submit" class="btn macos-btn macos-btn-primary">
-                <i class="bi bi-save me-1"></i> Guardar
-            </button>
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn macos-btn macos-btn-primary">Guardar</button>
         </div>
     </form>
 </div>

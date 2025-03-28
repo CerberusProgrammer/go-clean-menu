@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,26 +11,6 @@ func HomeHandler(c *fiber.Ctx) error {
 	return c.Render("index", fiber.Map{
 		"Title": "Menú de Restaurante",
 	})
-}
-
-// GetProducts obtiene todos los productos del menú
-func GetProducts(c *fiber.Ctx) error {
-	var products []Product
-	result := db.Order("category, name").Find(&products)
-	if result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al obtener productos",
-		})
-	}
-
-	// Si es una solicitud HTMX, renderiza parcial
-	if c.Get("HX-Request") == "true" {
-		return c.Render("partials/product_list", fiber.Map{
-			"Products": products,
-		})
-	}
-
-	return c.JSON(products)
 }
 
 func getRecentOrders(limit int) []fiber.Map {
@@ -175,43 +154,6 @@ func getSalesChartData(days int) ([]string, []float64) {
 	}
 
 	return labels, values
-}
-
-func CreateProduct(c *fiber.Ctx) error {
-	name := c.FormValue("name")
-	description := c.FormValue("description")
-	category := c.FormValue("category")
-	priceStr := c.FormValue("price")
-
-	if name == "" || category == "" || priceStr == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("Todos los campos son requeridos")
-	}
-
-	price, err := strconv.ParseFloat(priceStr, 64)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Precio inválido")
-	}
-
-	// Crear producto
-	product := Product{
-		Name:        name,
-		Description: description,
-		Category:    category,
-		Price:       price,
-		IsAvailable: true,
-	}
-
-	if result := db.Create(&product); result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al crear producto")
-	}
-
-	// Obtener todos los productos para actualizar la UI
-	var products []Product
-	db.Order("category, name").Find(&products)
-
-	return c.Render("partials/product_list", fiber.Map{
-		"Products": products,
-	})
 }
 
 func GetProductsByCategory(c *fiber.Ctx) error {

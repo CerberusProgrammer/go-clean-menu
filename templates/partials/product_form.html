@@ -1,0 +1,49 @@
+<div class="modal-header">
+    <h5 class="modal-title">{{if .IsNew}}Nuevo Producto{{else}}Editar Producto{{end}}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    {{if .IsNew}}
+    <form hx-post="/products" hx-target="#productList">
+        {{else}}
+        <form hx-put="/products/{{.Product.ID}}" hx-target="#productList">
+            {{end}}
+            <div class="mb-3">
+                <label for="productName" class="form-label">Nombre del producto *</label>
+                <input type="text" class="form-control" id="productName" name="name" required
+                    value="{{if not .IsNew}}{{.Product.Name}}{{end}}">
+            </div>
+            <div class="mb-3">
+                <label for="productDescription" class="form-label">Descripción</label>
+                <textarea class="form-control" id="productDescription" name="description"
+                    rows="3">{{if not .IsNew}}{{.Product.Description}}{{end}}</textarea>
+            </div>
+            <div class="mb-3">
+                <label for="productCategory" class="form-label">Categoría *</label>
+                <select class="form-select" id="productCategory" name="category" required>
+                    <option value="">Seleccione una categoría</option>
+                    {{range .Categories}}
+                    <option value="{{.}}" {{if and (not $.IsNew) (eq $.Product.Category .)}}selected{{end}}>{{.}}
+                    </option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="productPrice" class="form-label">Precio *</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" id="productPrice" name="price" step="0.01" min="0"
+                        required value="{{if not .IsNew}}{{printf " %.2f" .Product.Price}}{{end}}">
+                </div>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="productAvailability" name="is_available" {{if and
+                    (not .IsNew) .Product.IsAvailable}}checked{{end}}>
+                <label class="form-check-label" for="productAvailability">Disponible para la venta</label>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn macos-btn macos-btn-primary">Guardar</button>
+            </div>
+        </form>
+</div>

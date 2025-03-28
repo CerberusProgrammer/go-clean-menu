@@ -152,6 +152,7 @@ func main() {
 	// Rutas de Productos
 	app.Get("/products", GetProducts)
 	app.Get("/products/category/:category", GetProductsByCategory)
+	app.Get("/products/form", GetProductForm)
 	app.Post("/products", CreateProduct)
 	app.Put("/products/:id", UpdateProduct)
 	app.Delete("/products/:id", DeleteProduct)
