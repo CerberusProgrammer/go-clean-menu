@@ -147,7 +147,7 @@ func UpdateTableSettings(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Configuración de mesas actualizada"}`)
 	return c.Render("partials/table_grid", fiber.Map{
 		"Tables": tables,
-	})
+	}, "")
 }
 
 // UpdateAppSettings actualiza las preferencias de la aplicación
@@ -221,7 +221,7 @@ func GetBackupList(c *fiber.Ctx) error {
 
 	return c.Render("partials/backup_list", fiber.Map{
 		"Backups": backups,
-	})
+	}, "")
 }
 
 // DownloadBackup permite descargar un archivo de respaldo

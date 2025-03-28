@@ -115,11 +115,6 @@ func main() {
 	// Configurar engine de plantillas
 	engine := html.New("./templates", ".html")
 
-	// Añadir funciones para usar en templates
-	engine.AddFunc("multiply", func(a float64, b int) float64 {
-		return a * float64(b)
-	})
-
 	engine.AddFunc("formatDate", func(t time.Time) string {
 		return t.Format("02/01/2006")
 	})
@@ -128,13 +123,26 @@ func main() {
 		return t.Format("15:04")
 	})
 
-	// Add these new functions
 	engine.AddFunc("add", func(a, b int) int {
 		return a + b
 	})
 
 	engine.AddFunc("sub", func(a, b int) int {
 		return a - b
+	})
+
+	engine.AddFunc("mul", func(a, b int) int {
+		return a * b
+	})
+	engine.AddFunc("multiply", func(a, b int) int {
+		return a * b
+	})
+
+	engine.AddFunc("div", func(a, b int) int {
+		if b == 0 {
+			return 0
+		}
+		return a / b
 	})
 
 	// Crear aplicación Fiber

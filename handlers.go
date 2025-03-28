@@ -169,5 +169,5 @@ func GetProductsByCategory(c *fiber.Ctx) error {
 
 	return c.Render("partials/product_list", fiber.Map{
 		"Products": products,
-	})
+	}, "")
 }

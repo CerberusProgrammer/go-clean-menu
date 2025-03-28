@@ -175,4 +175,15 @@
             checkbox.checked = isChecked;
         });
     });
+
+    document.body.addEventListener('htmx:afterOnLoad', function (evt) {
+        if (evt.detail.xhr.getResponseHeader('HX-Trigger') &&
+            evt.detail.xhr.getResponseHeader('HX-Trigger').includes('refreshProducts')) {
+            // Refresh the product selects with new categories
+            const categorySelects = document.querySelectorAll('select[name="category"]');
+            if (categorySelects.length > 0) {
+                hx.ajax('GET', '/products', { target: '#productList' });
+            }
+        }
+    });
 </script>

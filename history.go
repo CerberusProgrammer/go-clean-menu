@@ -50,7 +50,7 @@ func GetTodayHistory(c *fiber.Ctx) error {
 		"StartDate":  today.Format("2006-01-02"),
 		"EndDate":    tomorrow.Format("2006-01-02"),
 		"FilterType": "today",
-	})
+	}, "")
 }
 
 // GetWeekHistory obtiene las órdenes de la semana actual
@@ -76,7 +76,7 @@ func GetWeekHistory(c *fiber.Ctx) error {
 		"StartDate":  weekStart.Format("2006-01-02"),
 		"EndDate":    weekEnd.Format("2006-01-02"),
 		"FilterType": "week",
-	})
+	}, "")
 }
 
 // GetMonthHistory obtiene las órdenes del mes actual
@@ -102,7 +102,7 @@ func GetMonthHistory(c *fiber.Ctx) error {
 		"StartDate":  monthStart.Format("2006-01-02"),
 		"EndDate":    nextMonth.Format("2006-01-02"),
 		"FilterType": "month",
-	})
+	}, "")
 }
 
 // GetCustomHistory obtiene órdenes en un rango de fechas personalizado
@@ -134,7 +134,7 @@ func GetCustomHistory(c *fiber.Ctx) error {
 		"StartDate":  startDateStr,
 		"EndDate":    endDateStr,
 		"FilterType": "custom",
-	})
+	}, "")
 }
 
 // Función auxiliar para preparar los datos de órdenes para mostrar

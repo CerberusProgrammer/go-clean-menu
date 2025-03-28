@@ -225,7 +225,7 @@ func AddItemToOrder(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Producto añadido a la orden"}`)
 	return c.Render("partials/order_items", fiber.Map{
 		"Order": order,
-	})
+	}, "")
 }
 
 // RemoveItemFromOrder elimina un item de la orden
@@ -270,7 +270,7 @@ func RemoveItemFromOrder(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Producto eliminado de la orden"}`)
 	return c.Render("partials/order_items", fiber.Map{
 		"Order": order,
-	})
+	}, "")
 }
 
 // OrdersHandler muestra todas las órdenes activas

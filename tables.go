@@ -73,7 +73,7 @@ func CreateTable(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Mesa #`+strconv.Itoa(tableNum)+` creada correctamente"}`)
 	return c.Render("partials/tables_grid", fiber.Map{
 		"Tables": tables,
-	})
+	}, "")
 }
 
 // DeleteTable elimina una mesa
@@ -104,7 +104,7 @@ func DeleteTable(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Mesa #`+strconv.Itoa(table.Number)+` eliminada correctamente"}`)
 	return c.Render("partials/tables_grid", fiber.Map{
 		"Tables": tables,
-	})
+	}, "")
 }
 
 // ResetTables elimina todas las mesas y crea nuevas según la configuración
@@ -141,5 +141,5 @@ func ResetTables(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Mesas restablecidas correctamente"}`)
 	return c.Render("partials/tables_grid", fiber.Map{
 		"Tables": tables,
-	})
+	}, "")
 }

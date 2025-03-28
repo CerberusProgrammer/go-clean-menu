@@ -96,7 +96,7 @@ func GetProducts(c *fiber.Ctx) error {
 			"SortBy":       sortBy,
 			"SortOrder":    sortOrder,
 		},
-	})
+	}, "")
 }
 
 // GetCategoryForm muestra el formulario para añadir una categoría
@@ -106,7 +106,7 @@ func GetCategoryForm(c *fiber.Ctx) error {
 
 	return c.Render("partials/category_form", fiber.Map{
 		"Categories": categories,
-	})
+	}, "")
 }
 
 // CreateCategory crea una nueva categoría
@@ -147,7 +147,7 @@ func CreateCategory(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Categoría '`+categoryName+`' creada con éxito", "refreshCategories": true}`)
 	return c.Render("partials/category_list", fiber.Map{
 		"Categories": categories,
-	})
+	}, "")
 }
 
 func GetProductForm(c *fiber.Ctx) error {
@@ -157,7 +157,7 @@ func GetProductForm(c *fiber.Ctx) error {
 	return c.Render("partials/product_form", fiber.Map{
 		"Categories": categories,
 		"IsNew":      true,
-	})
+	}, "")
 }
 
 // CreateProduct crea un nuevo producto
@@ -192,7 +192,8 @@ func CreateProduct(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Error al crear producto")
 	}
 
-	c.Set("HX-Trigger", `{"showToast": "Producto '`+name+`' creado exitosamente", "refreshProducts": true}`)
+	// Add closeModal to the trigger
+	c.Set("HX-Trigger", `{"showToast": "Producto '`+name+`' creado exitosamente", "closeModal": true, "refreshProducts": true}`)
 
 	// Redirigir a la lista de productos actualizada
 	return GetProducts(c)
@@ -217,7 +218,7 @@ func GetProductEditForm(c *fiber.Ctx) error {
 		"Product":    product,
 		"Categories": categories,
 		"IsNew":      false,
-	})
+	}, "")
 }
 
 // UpdateProduct actualiza un producto existente

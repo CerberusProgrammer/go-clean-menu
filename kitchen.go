@@ -105,7 +105,7 @@ func KitchenCompleteOrder(c *fiber.Ctx) error {
 
 	return c.Render("partials/kitchen_orders", fiber.Map{
 		"Orders": pendingOrders,
-	})
+	}, "")
 }
 
 // GetOrderCompletionStatus devuelve el progreso de la orden
