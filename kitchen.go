@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,17 +9,9 @@ import (
 
 // KitchenHandler muestra la vista de cocina
 func KitchenHandler(c *fiber.Ctx) error {
-	var pendingOrders []Order
-	db.Where("status = ?", "pending").
-		Order("created_at asc").
-		Preload("Items").
-		Preload("Items.Product").
-		Find(&pendingOrders)
-
 	return c.Render("kitchen", fiber.Map{
 		"Title":      "Vista de Cocina",
 		"ActivePage": "kitchen",
-		"Orders":     pendingOrders,
 	})
 }
 
@@ -31,10 +24,9 @@ func GetKitchenOrders(c *fiber.Ctx) error {
 		Preload("Items.Product").
 		Find(&pendingOrders)
 
-	// Add the empty string as the third parameter to render without layout
 	return c.Render("partials/kitchen_orders", fiber.Map{
 		"Orders": pendingOrders,
-	}, "") // This empty string disables the layout
+	}, "") // Add the empty string as the third parameter to render without layout
 }
 
 // ToggleItemStatus marca/desmarca un producto como listo
@@ -65,35 +57,11 @@ func ToggleItemStatus(c *fiber.Ctx) error {
 		}
 	}
 
-	response := "Estado actualizado"
 	if allItemsReady {
-		response = "Todos los items están listos"
 		c.Set("HX-Trigger", `{"showToast": "Todos los productos están listos"}`)
+	} else {
+		c.Set("HX-Trigger", `{"showToast": "Estado actualizado"}`)
 	}
-
-	return c.SendString(response)
-}
-
-// KitchenCompleteOrder marca una orden como completada desde la cocina
-func KitchenCompleteOrder(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
-	}
-
-	var order Order
-	if result := db.First(&order, id); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	order.Status = "completed"
-	db.Save(&order)
-
-	// Liberar la mesa asociada
-	db.Model(&Table{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
-		"occupied": false,
-		"order_id": nil,
-	})
 
 	// Obtener órdenes pendientes actualizadas para actualizar la vista
 	var pendingOrders []Order
@@ -102,6 +70,49 @@ func KitchenCompleteOrder(c *fiber.Ctx) error {
 		Preload("Items").
 		Preload("Items.Product").
 		Find(&pendingOrders)
+
+	// Devolver la vista actualizada
+	return c.Render("partials/kitchen_orders", fiber.Map{
+		"Orders": pendingOrders,
+	}, "")
+}
+
+// KitchenCompleteOrder marca una orden como completada desde la cocina
+func KitchenCompleteOrder(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		log.Printf("Error de conversión de ID: %v", err)
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
+	}
+
+	log.Printf("Completando orden #%d", id)
+
+	var order Order
+	if result := db.First(&order, id); result.Error != nil {
+		log.Printf("Orden no encontrada: %v", result.Error)
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
+	}
+
+	order.Status = "completed"
+	db.Save(&order)
+	log.Printf("Orden #%d marcada como completada", id)
+
+	// Liberar la mesa asociada
+	db.Model(&Table{}).Where("number = ?", order.TableNum).Updates(map[string]interface{}{
+		"occupied": false,
+		"order_id": nil,
+	})
+	log.Printf("Mesa %d liberada", order.TableNum)
+
+	// Obtener órdenes pendientes actualizadas para actualizar la vista
+	var pendingOrders []Order
+	db.Where("status = ?", "pending").
+		Order("created_at asc").
+		Preload("Items").
+		Preload("Items.Product").
+		Find(&pendingOrders)
+
+	c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(id)+` completada correctamente"}`)
 
 	return c.Render("partials/kitchen_orders", fiber.Map{
 		"Orders": pendingOrders,
@@ -115,23 +126,31 @@ func GetOrderCompletionStatus(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
-	var readyCount, totalCount int64
-
-	// Contar total de ítems
-	db.Model(&OrderItem{}).Where("order_id = ?", id).Count(&totalCount)
-
-	// Contar ítems listos
-	db.Model(&OrderItem{}).Where("order_id = ? AND is_ready = ?", id, true).Count(&readyCount)
-
-	var completionPercentage float64
-	if totalCount > 0 {
-		completionPercentage = float64(readyCount) / float64(totalCount) * 100.0
+	var order Order
+	if result := db.Preload("Items").First(&order, id); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	return c.JSON(fiber.Map{
-		"order_id":   id,
-		"ready":      readyCount,
-		"total":      totalCount,
-		"percentage": completionPercentage,
-	})
+	// Contar total de ítems
+	totalItems := len(order.Items)
+	if totalItems == 0 {
+		return c.Render("partials/order_progress", fiber.Map{
+			"Percentage": 0,
+		}, "")
+	}
+
+	// Contar ítems listos
+	readyItems := 0
+	for _, item := range order.Items {
+		if item.IsReady {
+			readyItems++
+		}
+	}
+
+	percentage := (readyItems * 100) / totalItems
+
+	return c.Render("partials/order_progress", fiber.Map{
+		"Percentage": percentage,
+		"OrderID":    id,
+	}, "")
 }

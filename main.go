@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"text/template"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -111,55 +112,46 @@ func main() {
 
 	// Inicializar base de datos
 	initDatabase()
-
+	initStaticData()
 	// Configurar engine de plantillas
 	engine := html.New("./templates", ".html")
 
-	engine.AddFunc("formatDate", func(t time.Time) string {
-		return t.Format("02/01/2006")
+	engine.AddFuncMap(template.FuncMap{
+		"formatDate": func(t time.Time) string {
+			return t.Format("02/01/2006")
+		},
+		"formatTime": func(t time.Time) string {
+			return t.Format("15:04")
+		},
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+		"mul": func(a float64, b int) float64 {
+			return a * float64(b)
+		},
+		"div": func(a, b int) int {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
+		"multiply": func(a float64, b int) float64 {
+			return a * float64(b)
+		},
 	})
 
-	engine.AddFunc("formatTime", func(t time.Time) string {
-		return t.Format("15:04")
-	})
-
-	engine.AddFunc("add", func(a, b int) int {
-		return a + b
-	})
-
-	engine.AddFunc("sub", func(a, b int) int {
-		return a - b
-	})
-
-	engine.AddFunc("mul", func(a, b int) int {
-		return a * b
-	})
-	engine.AddFunc("multiply", func(a, b int) int {
-		return a * b
-	})
-
-	engine.AddFunc("div", func(a, b int) int {
-		if b == 0 {
-			return 0
-		}
-		return a / b
-	})
+	// Cargar todas las plantillas, incluidas las parciales
+	if err := engine.Load(); err != nil {
+		log.Fatalf("Error cargando plantillas: %v", err)
+	}
 
 	// Crear aplicación Fiber
 	app := fiber.New(fiber.Config{
 		Views:       engine,
 		ViewsLayout: "layouts/main",
-	})
-
-	engine.AddFunc("mul", func(a, b int) int {
-		return a * b
-	})
-
-	engine.AddFunc("div", func(a, b int) int {
-		if b == 0 {
-			return 0
-		}
-		return a / b
 	})
 
 	// Middleware
@@ -183,9 +175,12 @@ func main() {
 	app.Delete("/products/:id", DeleteProduct)
 	app.Get("/products/:id/edit", GetProductEditForm)
 
+	// En la sección de rutas
+
 	// Rutas de Categorías
 	app.Get("/forms/category", GetCategoryForm)
 	app.Post("/categories", CreateCategory)
+	app.Get("/categories/list", GetCategoryList)
 
 	// Rutas de Órdenes
 	app.Get("/orders", OrdersHandler)
@@ -203,6 +198,7 @@ func main() {
 	app.Get("/kitchen", KitchenHandler)
 	app.Get("/kitchen/orders", GetKitchenOrders)
 	app.Put("/kitchen/items/:id/toggle", ToggleItemStatus)
+	app.Post("/kitchen/order/:id/complete", KitchenCompleteOrder)
 	app.Get("/kitchen/order/:id/status", GetOrderCompletionStatus)
 
 	// Rutas de Menu
@@ -235,9 +231,34 @@ func main() {
 	// Iniciar servidor
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = "3001"
 	}
 
 	log.Printf("Servidor iniciando en puerto %s", port)
 	log.Fatal(app.Listen(":" + port))
+}
+
+// Añade esta función justo después de seedProducts()
+
+// initStaticData garantiza que haya algunas categorías disponibles inicialmente
+func initStaticData() {
+	// Verificar si hay categorías existentes
+	var categoryCount int64
+	db.Model(&Product{}).Distinct().Select("category").Where("category != ''").Count(&categoryCount)
+
+	if categoryCount < 1 {
+		// Insertar categorías básicas si no hay ninguna
+		categories := []string{"Hamburguesas", "Pizzas", "Ensaladas", "Acompañamientos", "Bebidas", "Postres"}
+		for _, cat := range categories {
+			product := Product{
+				Name:        "Categoría: " + cat,
+				Description: "Categoría inicial",
+				Category:    cat,
+				Price:       0.01,
+				IsAvailable: false,
+			}
+			db.Create(&product)
+		}
+		log.Printf("Se crearon %d categorías iniciales", len(categories))
+	}
 }

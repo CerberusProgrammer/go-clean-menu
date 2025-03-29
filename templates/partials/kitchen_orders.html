@@ -17,7 +17,7 @@
                         </div>
                         <div>
                             <button class="btn btn-sm {{if .IsReady}}btn-success{{else}}btn-outline-secondary{{end}}"
-                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-swap="none">
+                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-target="#kitchen-orders" hx-trigger="click">
                                 {{if .IsReady}}<i class="bi bi-check-circle"></i> Listo{{else}}Marcar{{end}}
                             </button>
                         </div>

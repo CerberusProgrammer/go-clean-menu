@@ -6,10 +6,15 @@
         <span class="badge bg-primary rounded-pill">{{.ProductCount}}</span>
     </li>
     {{range .Categories}}
-    <li class="list-group-item d-flex justify-content-between align-items-center {{if eq $.Filters.Category .}}active{{end}}">
-        <a href="#" class="text-decoration-none d-block w-100" hx-get="/products?category={{.}}" hx-target="#productList">
+    <li
+        class="list-group-item d-flex justify-content-between align-items-center {{if eq $.Filters.Category .}}active{{end}}">
+        <a href="#" class="text-decoration-none d-block w-100" hx-get="/products?category={{.}}"
+            hx-target="#productList">
             {{.}}
         </a>
+        <span class="badge bg-primary rounded-pill">
+            <!-- Conteo se puede añadir en el backend si lo necesitas -->
+        </span>
     </li>
     {{end}}
 </ul>

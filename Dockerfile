@@ -31,12 +31,25 @@ COPY --from=builder /app/app .
 COPY templates/ /app/templates/
 COPY .env /app/.env
 
-# Agregar script para esperar PostgreSQL
-COPY wait-for-postgres.sh .
-RUN chmod +x wait-for-postgres.sh
+# Crear el script de espera para PostgreSQL directamente en el contenedor
+RUN echo '#!/bin/sh\n\
+set -e\n\
+\n\
+echo "Esperando a que PostgreSQL esté disponible..."\n\
+export PGPASSWORD=$DB_PASSWORD\n\
+\n\
+until psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "SELECT 1;" > /dev/null 2>&1; do\n\
+  echo "PostgreSQL no está disponible aún - esperando..."\n\
+  sleep 1\n\
+done\n\
+\n\
+echo "PostgreSQL está listo!"\n\
+exec "$@"' > /app/wait-for-postgres.sh
+
+RUN chmod +x /app/wait-for-postgres.sh
 
 # Exponer puerto
-EXPOSE 3000
+EXPOSE 3001
 
 # Comando para iniciar la aplicación
 CMD ["./app"]

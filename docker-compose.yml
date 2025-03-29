@@ -6,7 +6,7 @@ services:
     build: .
     container_name: resto-app
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       - db
     environment:
@@ -15,9 +15,25 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=go_clean_menu
-      - PORT=3000
+      - PORT=3001
     restart: always
-    command: sh -c "./wait-for-postgres.sh && ./app"
+    command: >
+      sh -c "
+        echo '#!/bin/sh
+        set -e
+        
+        echo \"Esperando a que PostgreSQL esté disponible...\"
+        export PGPASSWORD=$DB_PASSWORD
+        
+        until psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c \"SELECT 1;\" > /dev/null 2>&1; do
+          echo \"PostgreSQL no está disponible aún - esperando...\"
+          sleep 1
+        done
+        
+        echo \"PostgreSQL está listo!\"' > /app/wait-pg.sh && 
+        chmod +x /app/wait-pg.sh && 
+        /app/wait-pg.sh && 
+        ./app"
     networks:
       - resto-network
     volumes:

@@ -1,0 +1,7 @@
+<div class="progress-bar {{if eq .Percentage 100}}bg-success{{else}}bg-primary{{end}}" role="progressbar" 
+    style="width: {{.Percentage}}%" 
+    aria-valuenow="{{.Percentage}}" 
+    aria-valuemin="0" 
+    aria-valuemax="100">
+    {{.Percentage}}%
+</div>

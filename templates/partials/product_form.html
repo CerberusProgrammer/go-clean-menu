@@ -3,7 +3,7 @@
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <form hx-{{if .IsNew}}post{{else}}put{{end}}="{{if .IsNew}}/products{{else}}/products/{{.Product.ID}}{{end}}"
-    hx-target="#productList" hx-swap="outerHTML">
+    hx-target="#productList" hx-indicator="#form-indicator">
     <div class="modal-body">
         <div class="mb-3">
             <label for="name" class="form-label">Nombre</label>
@@ -40,6 +40,11 @@
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="submit" class="btn macos-btn macos-btn-primary">{{if .IsNew}}Crear{{else}}Guardar{{end}}</button>
+        <button type="submit" class="btn macos-btn macos-btn-primary">
+            <span id="form-indicator" class="htmx-indicator me-2">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
+            {{if .IsNew}}Crear{{else}}Guardar{{end}}
+        </button>
     </div>
 </form>

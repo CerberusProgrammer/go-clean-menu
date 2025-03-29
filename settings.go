@@ -168,7 +168,7 @@ func UpdateTableSettings(c *fiber.Ctx) error {
 	db.Order("number").Find(&tables)
 
 	c.Set("HX-Trigger", `{"showToast": "Configuración de mesas actualizada", "toastType": "success"}`)
-	return c.Render("partials/table_grid", fiber.Map{
+	return c.Render("partials/tables_grid", fiber.Map{
 		"Tables": tables,
 	}, "")
 }

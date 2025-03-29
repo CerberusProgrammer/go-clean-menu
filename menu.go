@@ -35,13 +35,36 @@ func MenuHandler(c *fiber.Ctx) error {
            ORDER BY count DESC LIMIT 5`).
 		Scan(&topProducts)
 
+	// Convertir el struct TopProduct a fiber.Map para poder acceder desde la plantilla
+	formattedTopProducts := make([]fiber.Map, 0)
+	for _, product := range topProducts {
+		formattedTopProducts = append(formattedTopProducts, fiber.Map{
+			"ID":       product.ID,
+			"Name":     product.Name,
+			"Category": product.Category,
+			"Count":    product.Count,
+		})
+	}
+
+	// Obtener productos para la lista inicial
+	var products []Product
+	db.Order("name").Find(&products)
+
 	return c.Render("menu", fiber.Map{
 		"Title":         "Administración de Menú",
 		"ActivePage":    "menu",
 		"Categories":    categories,
 		"ProductCount":  productCount,
 		"CategoryCount": categoryCount,
-		"TopProducts":   topProducts,
+		"TopProducts":   formattedTopProducts, // Aquí usamos el slice convertido
+		"Products":      products,
+		"Filters": fiber.Map{
+			"Category":     "all",
+			"Search":       "",
+			"Availability": "all",
+			"SortBy":       "name",
+			"SortOrder":    "asc",
+		},
 	})
 }
 
@@ -144,9 +167,17 @@ func CreateCategory(c *fiber.Ctx) error {
 	var categories []string
 	db.Model(&Product{}).Distinct().Order("category").Pluck("category", &categories)
 
-	c.Set("HX-Trigger", `{"showToast": "Categoría '`+categoryName+`' creada con éxito", "refreshCategories": true}`)
-	return c.Render("partials/category_list", fiber.Map{
-		"Categories": categories,
+	var productCount int64
+	db.Model(&Product{}).Count(&productCount)
+
+	c.Set("HX-Trigger", `{"showToast": "Categoría '`+categoryName+`' creada con éxito", "refreshCategories": true, "closeModal": true}`)
+
+	return c.Render("partials/category_sidebar", fiber.Map{
+		"Categories":   categories,
+		"ProductCount": productCount,
+		"Filters": fiber.Map{
+			"Category": "all",
+		},
 	}, "")
 }
 
@@ -192,11 +223,28 @@ func CreateProduct(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Error al crear producto")
 	}
 
-	// Add closeModal to the trigger
-	c.Set("HX-Trigger", `{"showToast": "Producto '`+name+`' creado exitosamente", "closeModal": true, "refreshProducts": true}`)
+	c.Set("HX-Trigger", `{"showToast": "Producto '`+name+`' creado exitosamente", "closeModal": true}`)
 
-	// Redirigir a la lista de productos actualizada
-	return GetProducts(c)
+	// Obtener productos actualizados
+	var products []Product
+	query := db.Order("name")
+	query.Find(&products)
+
+	// Obtener todas las categorías para los filtros
+	var categories []string
+	db.Model(&Product{}).Distinct().Order("category").Pluck("category", &categories)
+
+	return c.Render("partials/product_list", fiber.Map{
+		"Products":   products,
+		"Categories": categories,
+		"Filters": fiber.Map{
+			"Category":     "all",
+			"Search":       "",
+			"Availability": "all",
+			"SortBy":       "name",
+			"SortOrder":    "asc",
+		},
+	}, "")
 }
 
 // GetProductEditForm retorna el formulario para editar un producto
@@ -332,4 +380,22 @@ func BulkAction(c *fiber.Ctx) error {
 
 	// Redirigir a la lista de productos actualizada
 	return GetProducts(c)
+}
+
+// GetCategoryList devuelve la lista de categorías para actualizar el panel lateral
+func GetCategoryList(c *fiber.Ctx) error {
+	var categories []string
+	db.Model(&Product{}).Distinct().Order("category").Pluck("category", &categories)
+
+	// Contar productos por categoría (opcional)
+	var productCount int64
+	db.Model(&Product{}).Count(&productCount)
+
+	return c.Render("partials/category_sidebar", fiber.Map{
+		"Categories":   categories,
+		"ProductCount": productCount,
+		"Filters": fiber.Map{
+			"Category": c.Query("category", "all"),
+		},
+	}, "")
 }
