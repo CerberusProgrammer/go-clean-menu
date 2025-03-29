@@ -193,6 +193,10 @@ func main() {
 	app.Post("/order/:id/print", PrintOrder)
 	app.Post("/order/:id/email", EmailOrder)
 	app.Post("/order/:id/duplicate", DuplicateOrder)
+	// Añadir esta ruta en la sección de rutas de órdenes
+	app.Get("/new-order", GetNewOrderPage)
+	app.Post("/api/orders", CreateOrderAPI)
+	app.Get("/new-order/table/:tableNum", GetNewOrderPage)
 
 	// Rutas de Cocina
 	app.Get("/kitchen", KitchenHandler)

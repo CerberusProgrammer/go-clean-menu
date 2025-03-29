@@ -1,123 +1,96 @@
 <div class="mb-4 d-flex justify-content-between align-items-center">
     <h1 class="page-title m-0">
-        <i class="bi bi-receipt"></i> Orden #{{.Order.ID}} - Mesa {{.Order.TableNum}}
+        <i class="bi bi-receipt-cutoff"></i> Nueva Orden - Mesa {{.TableNum}}
     </h1>
     <div>
-        <span class="badge bg-primary me-2">{{formatTime .Order.CreatedAt}}</span>
-        {{if eq .Order.Status "pending"}}
-        <span class="badge bg-warning">Pendiente</span>
-        {{else if eq .Order.Status "completed"}}
-        <span class="badge bg-success">Completada</span>
-        {{else}}
-        <span class="badge bg-danger">Cancelada</span>
-        {{end}}
+        <button class="btn macos-btn btn-outline-secondary me-2" hx-get="/orders" hx-target="body" hx-push-url="true">
+            <i class="bi bi-x-circle me-2"></i>Cancelar
+        </button>
+        <button id="confirmOrderBtn" class="btn macos-btn macos-btn-primary" disabled>
+            <i class="bi bi-check-circle me-2"></i>Confirmar Orden
+            <span class="badge bg-white text-primary ms-2" id="itemCountBadge">0</span>
+        </button>
     </div>
 </div>
 
-<div class="row">
-    <!-- Sección de los ítems de la orden -->
-    <div class="col-md-7">
-        <div id="order-items">
-            {{template "partials/order_items" .}}
-        </div>
-
+<div class="row g-4">
+    <!-- Panel izquierdo: Lista de productos -->
+    <div class="col-md-8">
         <div class="macos-card mb-4">
-            <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0">Acciones</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.Order.ID}}/complete"
-                        hx-swap="none" hx-confirm="¿Completar esta orden?">
-                        <i class="bi bi-check-circle me-2"></i>Completar
-                    </button>
-                    <button class="btn macos-btn btn-outline-danger" hx-delete="/order/{{.Order.ID}}" hx-swap="none"
-                        hx-confirm="¿Cancelar esta orden?">
-                        <i class="bi bi-x-circle me-2"></i>Cancelar
-                    </button>
-                    <button class="btn macos-btn btn-outline-secondary" hx-post="/order/{{.Order.ID}}/print"
-                        hx-swap="none">
-                        <i class="bi bi-printer me-2"></i>Imprimir
-                    </button>
-                    <button class="btn macos-btn btn-outline-secondary" hx-post="/order/{{.Order.ID}}/duplicate"
-                        hx-swap="none">
-                        <i class="bi bi-copy me-2"></i>Duplicar
-                    </button>
-                    <button class="btn macos-btn btn-outline-secondary" data-bs-toggle="modal"
-                        data-bs-target="#emailOrderModal">
-                        <i class="bi bi-envelope me-2"></i>Enviar
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center p-3">
+                <h5 class="mb-0">Menú</h5>
+                <div class="input-group" style="max-width: 300px;">
+                    <input type="text" id="product-search" class="form-control" placeholder="Buscar productos..." autofocus>
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="bi bi-search"></i>
                     </button>
                 </div>
             </div>
-        </div>
-
-        <div class="macos-card mb-4">
-            <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0">Notas</h5>
-            </div>
-            <div class="card-body">
-                <form hx-put="/order/{{.Order.ID}}/notes" hx-swap="none">
-                    <div class="mb-3">
-                        <textarea class="form-control" name="notes" rows="3"
-                            placeholder="Agregar notas para esta orden...">{{.Order.Notes}}</textarea>
-                    </div>
-                    <button type="submit" class="btn macos-btn btn-sm">
-                        <i class="bi bi-save me-2"></i>Guardar notas
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sección de agregar productos -->
-    <div class="col-md-5">
-        <div class="macos-card mb-4">
-            <div class="card-header bg-transparent">
-                <h5 class="mb-0">Agregar productos</h5>
-            </div>
-            <div class="card-body">
-                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-                    {{range $index, $category := .Categories}}
+            <div class="card-body p-0">
+                <ul class="nav nav-pills nav-fill p-2" id="category-tabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link {{if eq $index 0}}active{{end}}" id="pills-{{$category}}-tab"
-                            data-bs-toggle="pill" data-bs-target="#pills-{{$category}}" type="button" role="tab">
-                            {{$category}}
+                        <button class="nav-link active" id="tab-all" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">
+                            Todos
+                        </button>
+                    </li>
+                    {{range .Categories}}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-{{.}}" data-bs-toggle="tab" data-bs-target="#{{.}}" type="button" role="tab" aria-controls="{{.}}" aria-selected="false">
+                            {{.}}
                         </button>
                     </li>
                     {{end}}
                 </ul>
-
-                <div class="tab-content" id="pills-tabContent">
-                    {{range $index, $category := .Categories}}
-                    <div class="tab-pane fade {{if eq $index 0}}show active{{end}}" id="pills-{{$category}}"
-                        role="tabpanel">
-                        <form hx-post="/order/{{$.Order.ID}}/add-item" hx-target="#order-items" class="mb-3">
-                            <div class="input-group">
-                                <select class="form-select" name="product_id" required>
-                                    <option value="" selected disabled>Seleccionar producto</option>
-                                    {{range index $.ProductsByCategory $category}}
-                                    <option value="{{.ID}}">{{.Name}} - ${{printf "%.2f" .Price}}</option>
-                                    {{end}}
-                                </select>
-                                <input type="number" class="form-control" name="quantity" min="1" value="1"
-                                    style="max-width: 80px;">
-                                <button class="btn macos-btn macos-btn-primary" type="submit">
-                                    <i class="bi bi-plus"></i> Agregar
-                                </button>
-                            </div>
-                            <div class="mt-2">
-                                <input type="text" class="form-control" name="notes" placeholder="Notas (opcional)">
-                            </div>
-                        </form>
-                        <div class="list-group">
-                            {{range index $.ProductsByCategory $category}}
-                            <div
-                                class="list-group-item bg-transparent d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{.Name}}</strong>
-                                    <small class="d-block text-muted">{{.Description}}</small>
+                
+                <div class="tab-content p-3">
+                    <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="tab-all">
+                        <div class="row row-cols-2 row-cols-md-3 g-3">
+                            {{range .AllProducts}}
+                            <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
+                                <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}" data-price="{{.Price}}">
+                                    <div class="d-flex flex-column h-100">
+                                        <h6>{{.Name}}</h6>
+                                        <div class="price mb-2">${{printf "%.2f" .Price}}</div>
+                                        <div class="category small text-muted mb-2">{{.Category}}</div>
+                                        <div class="mt-auto action-buttons">
+                                            <div class="d-flex justify-content-between">
+                                                <button class="btn btn-sm btn-primary quick-add-btn" data-id="{{.ID}}">
+                                                    <i class="bi bi-plus-circle me-1"></i> Añadir
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary options-btn" data-id="{{.ID}}">
+                                                    <i class="bi bi-gear"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span class="badge bg-secondary">${{printf "%.2f" .Price}}</span>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                    
+                    {{range $category := .Categories}}
+                    <div class="tab-pane fade" id="{{$category}}" role="tabpanel" aria-labelledby="tab-{{$category}}">
+                        <div class="row row-cols-2 row-cols-md-3 g-3">
+                            {{range index $.ProductsByCategory $category}}
+                            <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
+                                <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}" data-price="{{.Price}}">
+                                    <div class="d-flex flex-column h-100">
+                                        <h6>{{.Name}}</h6>
+                                        <div class="price mb-2">${{printf "%.2f" .Price}}</div>
+                                        <div class="category small text-muted mb-2">{{.Category}}</div>
+                                        <div class="mt-auto action-buttons">
+                                            <div class="d-flex justify-content-between">
+                                                <button class="btn btn-sm btn-primary quick-add-btn" data-id="{{.ID}}">
+                                                    <i class="bi bi-plus-circle me-1"></i> Añadir
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary options-btn" data-id="{{.ID}}">
+                                                    <i class="bi bi-gear"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             {{end}}
                         </div>
@@ -127,39 +100,565 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal para enviar orden por email -->
-<div class="modal fade" id="emailOrderModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Enviar orden por email</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Panel derecho: Resumen de la orden -->
+    <div class="col-md-4">
+        <div class="macos-card sticky-top" style="top: 70px;">
+            <div class="card-header bg-transparent p-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Orden en curso</h5>
+                <button id="clearOrderBtn" class="btn btn-sm btn-outline-danger" style="display:none;">
+                    <i class="bi bi-trash"></i> Limpiar
+                </button>
             </div>
-            <form hx-post="/order/{{.Order.ID}}/email" hx-swap="none">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Correo electrónico</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
-                    </div>
+            <div id="order-preview" class="card-body">
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-cart3 fs-1"></i>
+                    <p class="mt-3">Selecciona productos del menú para agregarlos</p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn macos-btn macos-btn-primary">
-                        <i class="bi bi-send me-2"></i>Enviar
-                    </button>
-                </div>
-            </form>
+            </div>
+            <div class="card-footer bg-transparent d-flex justify-content-between align-items-center p-3">
+                <h5 class="mb-0">Total:</h5>
+                <h5 class="mb-0" id="total-price">$0.00</h5>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Modal para opciones de producto -->
+<div class="modal fade" id="productOptionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="product-modal-title">Agregar producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modal-product-id">
+                <div class="mb-3">
+                    <label class="form-label">Cantidad</label>
+                    <div class="input-group">
+                        <button class="btn btn-outline-secondary quantity-btn" data-action="decrease" type="button">-</button>
+                        <input type="number" class="form-control text-center" id="modal-quantity" value="1" min="1" max="99">
+                        <button class="btn btn-outline-secondary quantity-btn" data-action="increase" type="button">+</button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="modal-notes" class="form-label">Notas especiales</label>
+                    <textarea class="form-control" id="modal-notes" rows="3" placeholder="Ej. Sin cebolla, extra queso, término medio..."></textarea>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="modal-add-more">
+                    <label class="form-check-label" for="modal-add-more">Mantener abierto para añadir más productos</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn macos-btn macos-btn-primary" id="add-to-order-btn">Agregar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar orden -->
+<div class="modal fade" id="confirmOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas crear esta orden para la Mesa {{.TableNum}}?</p>
+                <div class="order-summary p-3 bg-light rounded mb-3">
+                    <h6>Resumen:</h6>
+                    <ul class="list-unstyled" id="confirm-order-summary"></ul>
+                    <div class="d-flex justify-content-between">
+                        <strong>Total:</strong>
+                        <span id="confirm-order-total"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="order-notes" class="form-label">Notas adicionales</label>
+                    <textarea class="form-control" id="order-notes" rows="2" placeholder="Notas generales para la orden (opcional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn macos-btn macos-btn-primary" id="submit-order-btn">
+                    Confirmar y crear orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast para notificaciones -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+<style>
+    .product-card {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        position: relative;
+        height: 100%;
+    }
+    .product-card:hover {
+        border-color: var(--accent-color);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .product-card .action-buttons {
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    .product-card:hover .action-buttons {
+        opacity: 1;
+    }
+    .order-item {
+        border-bottom: 1px solid var(--border-color);
+        padding: 10px 0;
+    }
+    .order-item:last-child {
+        border-bottom: none;
+    }
+    .quantity-btn {
+        width: 38px;
+    }
+    .badge.text-primary {
+        color: var(--accent-color) !important;
+    }
+    
+    /* Animaciones */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .item-added {
+        animation: item-highlight 0.8s;
+    }
+    .item-highlight {
+        animation: highlight-bg 1s;
+    }
+    
+    @keyframes item-highlight {
+        0% { background-color: transparent; }
+        50% { background-color: rgba(var(--accent-rgb), 0.2); }
+        100% { background-color: transparent; }
+    }
+    
+    @keyframes highlight-bg {
+        0% { background-color: var(--accent-color); }
+        100% { background-color: transparent; }
+    }
+    
+    /* Mejorar visual de pestañas */
+    .nav-pills .nav-link {
+        border-radius: 20px;
+        padding: 8px 15px;
+        margin: 0 5px;
+        color: var(--text-color);
+    }
+    .nav-pills .nav-link.active {
+        background-color: var(--accent-color);
+        color: white;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .sticky-top {
+            position: relative;
+            top: 0 !important;
+        }
+        .nav-pills {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+    }
+</style>
+
 <script>
-    document.body.addEventListener('htmx:responseHeaders', function (evt) {
-        const path = evt.detail.xhr.getResponseHeader('HX-Redirect');
-        if (path) {
-            window.location.href = path;
+    document.addEventListener('DOMContentLoaded', function() {
+        let orderItems = [];
+        const tableNum = {{.TableNum}};
+        const confirmOrderBtn = document.getElementById('confirmOrderBtn');
+        const clearOrderBtn = document.getElementById('clearOrderBtn');
+        const totalPriceEl = document.getElementById('total-price');
+        const itemCountBadge = document.getElementById('itemCountBadge');
+        const productSearch = document.getElementById('product-search');
+        
+        // Accesos rápidos con teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            // Presionar C para confirmar la orden
+            if (e.key === 'c' && !confirmOrderBtn.disabled) {
+                showConfirmModal();
+            }
+            
+            // Presionar / para enfocar la búsqueda
+            if (e.key === '/') {
+                e.preventDefault();
+                productSearch.focus();
+            }
+            
+            // Presionar Escape para cancelar
+            if (e.key === 'Escape' && document.querySelector('.modal.show') === null) {
+                if (confirm('¿Deseas cancelar esta orden?')) {
+                    window.location.href = '/orders';
+                }
+            }
+        });
+        
+        // Búsqueda de productos
+        productSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.product-item').forEach(item => {
+                const productName = item.getAttribute('data-name').toLowerCase();
+                const productCategory = item.getAttribute('data-category').toLowerCase();
+                
+                if (productName.includes(searchTerm) || productCategory.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+        
+        // Botones de cantidad en modal
+        document.querySelectorAll('.quantity-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const quantityInput = document.getElementById('modal-quantity');
+                let currentValue = parseInt(quantityInput.value);
+                
+                if (this.getAttribute('data-action') === 'increase') {
+                    quantityInput.value = Math.min(currentValue + 1, 99);
+                } else {
+                    quantityInput.value = Math.max(currentValue - 1, 1);
+                }
+            });
+        });
+        
+        // Botón de añadir rápido
+        document.querySelectorAll('.quick-add-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation(); // Evitar que se active el clic en la tarjeta
+                const productId = this.getAttribute('data-id');
+                const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
+                const productName = productCard.getAttribute('data-name');
+                const productPrice = parseFloat(productCard.getAttribute('data-price'));
+                
+                // Añadir el producto con cantidad 1 y sin notas
+                addProductToOrder(productId, productName, productPrice, 1, '');
+                
+                // Mostrar notificación
+                showToast(`${productName} añadido`, 'success');
+                
+                // Efecto visual de añadido
+                productCard.classList.add('item-added');
+                setTimeout(() => productCard.classList.remove('item-added'), 800);
+            });
+        });
+        
+        // Botón de opciones
+        document.querySelectorAll('.options-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const productId = this.getAttribute('data-id');
+                openProductModal(productId);
+            });
+        });
+        
+        // Clic en tarjeta de producto (muestra opciones)
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const productId = this.getAttribute('data-id');
+                openProductModal(productId);
+            });
+        });
+        
+        function openProductModal(productId) {
+            const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
+            const productName = productCard.getAttribute('data-name');
+            
+            document.getElementById('modal-product-id').value = productId;
+            document.getElementById('product-modal-title').textContent = productName;
+            document.getElementById('modal-quantity').value = 1;
+            document.getElementById('modal-notes').value = '';
+            document.getElementById('modal-add-more').checked = false;
+            
+            const modal = new bootstrap.Modal(document.getElementById('productOptionsModal'));
+            modal.show();
+            
+            // Enfocar campo de cantidad
+            setTimeout(() => document.getElementById('modal-quantity').focus(), 500);
+        }
+        
+        // Botón de agregar producto desde modal
+        document.getElementById('add-to-order-btn').addEventListener('click', function() {
+            const productId = document.getElementById('modal-product-id').value;
+            const quantity = parseInt(document.getElementById('modal-quantity').value);
+            const notes = document.getElementById('modal-notes').value;
+            const keepOpen = document.getElementById('modal-add-more').checked;
+            
+            // Buscar el producto en los datos
+            const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
+            const productName = productCard.getAttribute('data-name');
+            const productPrice = parseFloat(productCard.getAttribute('data-price'));
+            
+            // Añadir a la orden
+            addProductToOrder(productId, productName, productPrice, quantity, notes);
+            
+            // Mostrar notificación
+            showToast(`${quantity}x ${productName} añadido`, 'success');
+            
+            // Cerrar modal o resetear para siguiente producto
+            if (!keepOpen) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('productOptionsModal'));
+                modal.hide();
+            } else {
+                // Resetear valores pero mantener el modal abierto
+                document.getElementById('modal-quantity').value = 1;
+                document.getElementById('modal-notes').value = '';
+            }
+            
+            // Efecto visual de añadido
+            productCard.classList.add('item-added');
+            setTimeout(() => productCard.classList.remove('item-added'), 800);
+        });
+        
+        function addProductToOrder(productId, productName, productPrice, quantity, notes) {
+            // Verificar si ya existe en la orden para combinar
+            const existingIndex = orderItems.findIndex(item => 
+                item.productId === productId && item.notes === notes
+            );
+            
+            if (existingIndex !== -1) {
+                // Incrementar cantidad si ya existe con las mismas notas
+                orderItems[existingIndex].quantity += quantity;
+                orderItems[existingIndex].subtotal = orderItems[existingIndex].price * orderItems[existingIndex].quantity;
+            } else {
+                // Agregar nuevo item
+                orderItems.push({
+                    productId: productId,
+                    productName: productName,
+                    price: productPrice,
+                    quantity: quantity,
+                    notes: notes,
+                    subtotal: productPrice * quantity
+                });
+            }
+            
+            // Actualizar la vista previa
+            updateOrderPreview();
+        }
+        
+        // Limpiar toda la orden
+        clearOrderBtn.addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que deseas eliminar todos los productos de esta orden?')) {
+                orderItems = [];
+                updateOrderPreview();
+                showToast('Orden limpiada', 'warning');
+            }
+        });
+        
+        function updateOrderPreview() {
+            const orderPreview = document.getElementById('order-preview');
+            let total = 0;
+            
+            if (orderItems.length === 0) {
+                orderPreview.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-cart3 fs-1"></i>
+                        <p class="mt-3">Selecciona productos del menú para agregarlos</p>
+                    </div>
+                `;
+                totalPriceEl.textContent = '$0.00';
+                confirmOrderBtn.disabled = true;
+                itemCountBadge.textContent = '0';
+                clearOrderBtn.style.display = 'none';
+                return;
+            }
+            
+            let html = '<ul class="list-unstyled m-0">';
+            
+            orderItems.forEach((item, index) => {
+                total += item.subtotal;
+                html += `
+                    <li id="order-item-${index}" class="order-item py-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="d-flex align-items-center">
+                                    <div class="btn-group btn-group-sm me-2" role="group">
+                                        <button type="button" class="btn btn-outline-secondary item-qty-btn" data-index="${index}" data-action="decrease">−</button>
+                                        <span class="btn btn-outline-secondary px-2">${item.quantity}</span>
+                                        <button type="button" class="btn btn-outline-secondary item-qty-btn" data-index="${index}" data-action="increase">+</button>
+                                    </div>
+                                    <strong>${item.productName}</strong>
+                                </div>
+                                ${item.notes ? `<small class="text-muted d-block">${item.notes}</small>` : ''}
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="me-3">$${item.subtotal.toFixed(2)}</span>
+                                <button class="btn btn-sm btn-outline-danger delete-item" data-index="${index}">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            orderPreview.innerHTML = html;
+            totalPriceEl.textContent = '$' + total.toFixed(2);
+            confirmOrderBtn.disabled = false;
+            itemCountBadge.textContent = orderItems.length;
+            clearOrderBtn.style.display = 'block';
+            
+            // Agregar event listeners a los botones de eliminar
+            document.querySelectorAll('.delete-item').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    const itemName = orderItems[index].productName;
+                    orderItems.splice(index, 1);
+                    updateOrderPreview();
+                    showToast(`${itemName} eliminado de la orden`, 'warning');
+                });
+            });
+            
+            // Agregar event listeners a los botones de cantidad
+            document.querySelectorAll('.item-qty-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    const action = this.getAttribute('data-action');
+                    
+                    if (action === 'increase') {
+                        orderItems[index].quantity += 1;
+                    } else {
+                        if (orderItems[index].quantity > 1) {
+                            orderItems[index].quantity -= 1;
+                        } else {
+                            return; // No permitir cantidad menor a 1
+                        }
+                    }
+                    
+                    // Actualizar subtotal
+                    orderItems[index].subtotal = orderItems[index].price * orderItems[index].quantity;
+                    
+                    // Efecto visual
+                    const listItem = document.getElementById(`order-item-${index}`);
+                    listItem.classList.add('item-highlight');
+                    setTimeout(() => listItem.classList.remove('item-highlight'), 1000);
+                    
+                    updateOrderPreview();
+                });
+            });
+        }
+        
+        // Confirmar y mostrar modal final
+        confirmOrderBtn.addEventListener('click', showConfirmModal);
+        
+        function showConfirmModal() {
+            // Generar resumen de orden para el modal de confirmación
+            const summaryElement = document.getElementById('confirm-order-summary');
+            let summaryHTML = '';
+            let total = 0;
+            
+            orderItems.forEach(item => {
+                total += item.subtotal;
+                summaryHTML += `
+                    <li class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span><strong>${item.quantity}x</strong> ${item.productName}</span>
+                            <span>$${item.subtotal.toFixed(2)}</span>
+                        </div>
+                        ${item.notes ? `<small class="text-muted">${item.notes}</small>` : ''}
+                    </li>
+                `;
+            });
+            
+            summaryElement.innerHTML = summaryHTML;
+            document.getElementById('confirm-order-total').textContent = '$' + total.toFixed(2);
+            
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmOrderModal'));
+            confirmModal.show();
+        }
+        
+        document.getElementById('submit-order-btn').addEventListener('click', function() {
+            if (orderItems.length === 0) return;
+            
+            // Mostrar spinner en el botón
+            const originalContent = this.innerHTML;
+            this.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...`;
+            this.disabled = true;
+            
+            // Preparar datos para enviar
+            const orderData = {
+                tableNum: tableNum,
+                notes: document.getElementById('order-notes').value,
+                items: orderItems.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    notes: item.notes
+                }))
+            };
+            
+            // Enviar orden al servidor
+            fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirigir a la página de la nueva orden
+                    window.location.href = `/order/${data.orderId}`;
+                } else {
+                    // Mostrar error
+                    showToast('Error: ' + data.message, 'danger');
+                    this.innerHTML = originalContent;
+                    this.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Ocurrió un error al procesar la orden', 'danger');
+                this.innerHTML = originalContent;
+                this.disabled = false;
+            });
+        });
+        
+        // Mostrar notificaciones toast
+        function showToast(message, type = 'success') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toastEl);
+            const toast = new bootstrap.Toast(toastEl, {delay: 3000});
+            toast.show();
+            
+            // Remover el toast después de ocultarse
+            toastEl.addEventListener('hidden.bs.toast', function() {
+                this.remove();
+            });
         }
     });
 </script>
