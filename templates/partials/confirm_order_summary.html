@@ -1,0 +1,26 @@
+<p>¿Estás seguro de que deseas crear esta orden para la Mesa {{.TableNum}}?</p>
+<div class="order-summary p-3 bg-light rounded mb-3">
+    <h6>Resumen:</h6>
+    <ul class="list-unstyled">
+        {{range .Items}}
+        <li class="mb-2">
+            <div class="d-flex justify-content-between">
+                <span><strong>{{.Quantity}}x</strong> {{.ProductName}}</span>
+                <span>${{printf "%.2f" .Subtotal}}</span>
+            </div>
+            {{if .Notes}}
+            <small class="text-muted">{{.Notes}}</small>
+            {{end}}
+        </li>
+        {{end}}
+    </ul>
+    <div class="d-flex justify-content-between">
+        <strong>Total:</strong>
+        <span>${{printf "%.2f" .Total}}</span>
+    </div>
+</div>
+<div class="form-group">
+    <label for="order-notes" class="form-label">Notas adicionales</label>
+    <textarea class="form-control" id="order-notes" name="notes" rows="2"
+        placeholder="Notas generales para la orden (opcional)"></textarea>
+</div>

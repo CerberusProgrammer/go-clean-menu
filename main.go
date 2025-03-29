@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/template/html/v2"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -154,6 +155,29 @@ func main() {
 		ViewsLayout: "layouts/main",
 	})
 
+	sessionStore = session.New(session.Config{
+		Expiration:     24 * time.Hour,
+		KeyLookup:      "cookie:order_session", // Usa KeyLookup en lugar de CookieName
+		CookieSecure:   false,                  // En producción con HTTPS debería ser true
+		CookiePath:     "/",                    // Importante para que la cookie sea válida en todas las rutas
+		CookieHTTPOnly: true,
+		CookieSameSite: "Lax", // Ayuda con la compatibilidad en navegadores modernos
+	})
+
+	// Aplica el middleware a todas las rutas
+	app.Use(func(c *fiber.Ctx) error {
+		// Asegura que la sesión se crea correctamente para todas las rutas
+		sess, err := sessionStore.Get(c)
+		if err != nil {
+			log.Printf("Error obteniendo sesión middleware: %v", err)
+			// Continuar el flujo a pesar del error
+		} else if sess != nil {
+			// Renovar la sesión en cada request para mantenerla viva
+			sess.SetExpiry(24 * time.Hour)
+		}
+		return c.Next()
+	})
+
 	// Middleware
 	app.Use(logger.New())
 	app.Use(recover.New())
@@ -182,7 +206,7 @@ func main() {
 	app.Post("/categories", CreateCategory)
 	app.Get("/categories/list", GetCategoryList)
 
-	// Rutas de Órdenes
+	// Rutas de órdenes
 	app.Get("/orders", OrdersHandler)
 	app.Post("/orders", CreateOrder)
 	app.Get("/order/:id", GetOrder)
@@ -193,10 +217,15 @@ func main() {
 	app.Post("/order/:id/print", PrintOrder)
 	app.Post("/order/:id/email", EmailOrder)
 	app.Post("/order/:id/duplicate", DuplicateOrder)
-	// Añadir esta ruta en la sección de rutas de órdenes
-	app.Get("/new-order", GetNewOrderPage)
-	app.Post("/api/orders", CreateOrderAPI)
+
+	// Rutas para orden temporal - AÑADE ESTAS RUTAS SI NO EXISTEN
 	app.Get("/new-order/table/:tableNum", GetNewOrderPage)
+	app.Post("/order/temp/item", AddItemToTempOrder)
+	app.Delete("/order/temp/item/:index", RemoveItemFromTempOrder)
+	app.Put("/order/temp/item/:index/quantity/:action", UpdateTempOrderItemQuantity)
+	app.Delete("/order/temp", ClearTempOrder)
+	app.Post("/order/temp/confirm", ConfirmTempOrder)
+	app.Get("/order/temp/summary", GetTempOrderSummary)
 
 	// Rutas de Cocina
 	app.Get("/kitchen", KitchenHandler)

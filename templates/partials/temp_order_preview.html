@@ -1,0 +1,84 @@
+{{if not .Items}}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-cart3 fs-1"></i>
+    <p class="mt-3">Selecciona productos del menú para agregarlos</p>
+</div>
+{{else if eq (len .Items) 0}}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-cart3 fs-1"></i>
+    <p class="mt-3">Selecciona productos del menú para agregarlos</p>
+</div>
+{{else}}
+<ul class="list-unstyled m-0">
+    {{range $index, $item := .Items}}
+    <li id="order-item-{{$index}}" class="order-item py-2">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="d-flex align-items-center">
+                    <div class="btn-group btn-group-sm me-2" role="group">
+                        <button type="button" class="btn btn-outline-secondary"
+                            hx-put="/order/temp/item/{{$index}}/quantity/decrease" hx-target="#order-preview">−</button>
+                        <span class="btn btn-outline-secondary px-2">{{.Quantity}}</span>
+                        <button type="button" class="btn btn-outline-secondary"
+                            hx-put="/order/temp/item/{{$index}}/quantity/increase" hx-target="#order-preview">+</button>
+                    </div>
+                    <strong>{{.ProductName}}</strong>
+                </div>
+                {{if .Notes}}
+                <small class="text-muted d-block">{{.Notes}}</small>
+                {{end}}
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="me-3">${{printf "%.2f" .Subtotal}}</span>
+                <button class="btn btn-sm btn-outline-danger" hx-delete="/order/temp/item/{{$index}}"
+                    hx-target="#order-preview">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        </div>
+    </li>
+    {{end}}
+</ul>
+{{end}}
+
+<!-- Valor oculto para el conteo de elementos -->
+<input type="hidden" id="itemCountValue" value="{{if .ItemCount}}{{.ItemCount}}{{else}}0{{end}}">
+
+<!-- Valor oculto para el total -->
+<input type="hidden" id="orderTotalValue" value="{{if .Total}}{{printf "%.2f" .Total}}{{else}}0.00{{end}}">
+
+<!-- Script para actualizar elementos de la UI -->
+<script>
+    // Actualizar el contador de items en el botón de confirmar orden
+    var itemCount = {{if .ItemCount}}{{.ItemCount}}{{else}}0{{end}};
+    var itemCountBadge = document.getElementById('itemCountBadge');
+    if (itemCountBadge) {
+        itemCountBadge.textContent = itemCount;
+    }
+    
+    // Habilitar/deshabilitar botón de confirmar según haya items
+    var confirmBtn = document.getElementById('confirmOrderBtn');
+    if (confirmBtn) {
+        if (itemCount > 0) {
+            confirmBtn.removeAttribute('disabled');
+        } else {
+            confirmBtn.setAttribute('disabled', '');
+        }
+    }
+    
+    // Mostrar/ocultar botón de limpiar según haya items
+    var clearBtn = document.getElementById('clearOrderBtn');
+    if (clearBtn) {
+        if (itemCount > 0) {
+            clearBtn.style.display = '';
+        } else {
+            clearBtn.style.display = 'none';
+        }
+    }
+    
+    // Actualizar el precio total
+    var totalPrice = document.getElementById('total-price');
+    if (totalPrice) {
+        totalPrice.textContent = '${{if .Total}}{{printf "%.2f" .Total}}{{else}}0.00{{end}}';
+    }
+</script>
