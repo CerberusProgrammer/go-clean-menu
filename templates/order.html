@@ -6,131 +6,163 @@
         <button class="btn macos-btn btn-outline-secondary me-2" hx-get="/orders" hx-target="body" hx-push-url="true">
             <i class="bi bi-arrow-left me-2"></i>Regresar
         </button>
-        <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.OrderID}}/complete" hx-swap="none"
-            hx-confirm="¿Está seguro de completar esta orden?">
+        
+        <button class="btn macos-btn btn-outline-danger me-2" hx-post="/order/{{.OrderID}}/cancel" 
+            hx-swap="none" hx-confirm="¿Está seguro de cancelar esta orden?">
+            <i class="bi bi-x-circle me-2"></i>Cancelar Orden
+        </button>
+
+        {{if eq .Order.Status "pending"}}
+        <button class="btn macos-btn btn-primary" hx-post="/order/{{.OrderID}}/process" 
+            hx-swap="none" hx-confirm="¿Enviar este pedido a cocina?" hx-indicator="#process-indicator">
+            <span id="process-indicator" class="htmx-indicator me-2">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
+            <i class="bi bi-arrow-right-circle me-2"></i>Completar Pedido
+        </button>
+        {{else}}
+        <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.OrderID}}/complete" 
+            hx-swap="none" hx-confirm="¿Está seguro de completar esta orden?" hx-indicator="#complete-indicator">
+            <span id="complete-indicator" class="htmx-indicator me-2">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
             <i class="bi bi-check-circle me-2"></i>Completar Orden
         </button>
+        {{end}}
     </div>
 </div>
 
-<div class="row g-4">
-    <!-- Panel izquierdo: Lista de productos -->
-    <div class="col-md-8">
-        <div class="macos-card mb-4">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center p-3">
-                <h5 class="mb-0">Menú</h5>
-                <div class="input-group" style="max-width: 300px;">
-                    <input type="text" id="product-search" class="form-control" placeholder="Buscar productos..."
-                        autofocus>
-                    <button class="btn btn-outline-secondary" type="button">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <!-- Pestañas de categorías -->
-                <ul class="nav nav-pills nav-fill p-2" id="category-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tab-all" data-bs-toggle="tab" data-bs-target="#all"
-                            type="button" role="tab" aria-controls="all" aria-selected="true">
-                            Todos
-                        </button>
-                    </li>
-                    {{range .Categories}}
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-{{.}}" data-bs-toggle="tab" data-bs-target="#{{.}}"
-                            type="button" role="tab" aria-controls="{{.}}" aria-selected="false">
-                            {{.}}
-                        </button>
-                    </li>
-                    {{end}}
-                </ul>
-
-                <div class="tab-content p-3">
-                    <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="tab-all">
-                        <div class="row row-cols-2 row-cols-md-3 g-3">
-                            {{range .Items}}
-                            <div class="col product-item" data-name="{{.Product.Name}}"
-                                data-category="{{.Product.Category}}">
-                                <div class="product-card p-2" data-id="{{.Product.ID}}" data-name="{{.Product.Name}}"
-                                    data-price="{{.Product.Price}}">
-                                    <div class="d-flex flex-column h-100">
-                                        <h6>{{.Product.Name}}</h6>
-                                        <div class="price mb-2">${{printf "%.2f" .Product.Price}}</div>
-                                        <div class="category small text-muted mb-2">{{.Product.Category}}</div>
-                                        <div class="mt-auto action-buttons">
-                                            <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-primary"
-                                                    hx-post="/order/{{$.OrderID}}/item"
-                                                    hx-vals='{"product_id": "{{.Product.ID}}", "quantity": 1, "notes": ""}'
-                                                    hx-target="#order-items">
-                                                    <i class="bi bi-plus-circle me-1"></i> Añadir
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-secondary"
-                                                    data-id="{{.Product.ID}}" data-name="{{.Product.Name}}"
-                                                    data-price="{{.Product.Price}}" onclick="openProductModal(this)">
-                                                    <i class="bi bi-gear"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+<!-- Sección de items de la orden -->
+<div id="order-items">
+    <div class="macos-card mb-4">
+        <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">Ítems de la orden</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Cant.</th>
+                        <th>Subtotal</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Order.Items}}
+                    <tr>
+                        <td>
+                            <strong>{{.Product.Name}}</strong>
+                            {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
+                        </td>
+                        <td>${{printf "%.2f" .Product.Price}}</td>
+                        <td>{{.Quantity}}</td>
+                        <td>${{printf "%.2f" (multiply .Product.Price .Quantity)}}</td>
+                        <td>
+                            {{if .IsReady}}
+                            <span class="badge bg-success">Listo</span>
+                            {{else}}
+                            <span class="badge bg-secondary">Pendiente</span>
                             {{end}}
-                        </div>
-                    </div>
-
-                    {{range $category := .Categories}}
-                    <div class="tab-pane fade" id="{{$category}}" role="tabpanel" aria-labelledby="tab-{{$category}}">
-                        <div class="row row-cols-2 row-cols-md-3 g-3">
-                            {{range index $.ProductsByCategory $category}}
-                            <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
-                                <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}"
-                                    data-price="{{.Price}}">
-                                    <div class="d-flex flex-column h-100">
-                                        <h6>{{.Name}}</h6>
-                                        <div class="price mb-2">${{printf "%.2f" .Price}}</div>
-                                        <div class="category small text-muted mb-2">{{.Category}}</div>
-                                        <div class="mt-auto action-buttons">
-                                            <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-primary"
-                                                    hx-post="/order/{{$.OrderID}}/item"
-                                                    hx-vals='{"product_id": "{{.ID}}", "quantity": 1, "notes": ""}'
-                                                    hx-target="#order-items">
-                                                    <i class="bi bi-plus-circle me-1"></i> Añadir
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-secondary" data-id="{{.ID}}"
-                                                    data-name="{{.Name}}" data-price="{{.Price}}"
-                                                    onclick="openProductModal(this)">
-                                                    <i class="bi bi-gear"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {{end}}
-                        </div>
-                    </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" hx-delete="/order/{{$.OrderID}}/item/{{.ID}}"
+                                hx-target="#order-items" hx-confirm="¿Eliminar este producto de la orden?">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">No hay productos en esta orden</td>
+                    </tr>
                     {{end}}
-                </div>
-            </div>
+                </tbody>
+                <tfoot class="table-group-divider">
+                    <tr>
+                        <th colspan="3" class="text-end">Total:</th>
+                        <th>${{printf "%.2f" .Order.Total}}</th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
     </div>
+</div>
 
-    <!-- Panel derecho: Resumen de la orden -->
-    <div class="col-md-4">
-        <div class="macos-card sticky-top" style="top: 70px;">
-            <div class="card-header bg-transparent p-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Detalles de la Orden</h5>
+<!-- Lista de productos -->
+<div class="macos-card">
+    <div class="card-header bg-transparent">
+        <ul class="nav nav-tabs card-header-tabs" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="tab-all" data-bs-toggle="tab" href="#all" role="tab">Todos</a>
+            </li>
+            {{range $category := .Categories}}
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="tab-{{$category}}" data-bs-toggle="tab" href="#{{$category}}"
+                    role="tab">{{$category}}</a>
+            </li>
+            {{end}}
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" class="form-control" id="product-search" placeholder="Buscar productos...">
+        </div>
+        <div class="tab-content" id="productTabsContent">
+            <!-- Pestaña de todos los productos -->
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="tab-all">
+                <div class="row row-cols-2 row-cols-md-3 g-3">
+                    {{range .AllProducts}}
+                    <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
+                        <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}" data-price="{{.Price}}">
+                            <div class="d-flex flex-column h-100">
+                                <h6>{{.Name}}</h6>
+                                <div class="price mb-2">${{printf "%.2f" .Price}}</div>
+                                <div class="category small text-muted mb-2">{{.Category}}</div>
+                                <div class="mt-auto action-buttons">
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-sm btn-primary w-100"
+                                            onclick="openProductModal(this.parentNode.parentNode.parentNode.parentNode)">
+                                            <i class="bi bi-plus-circle me-1"></i>Añadir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
             </div>
-            <div id="order-items" class="card-body">
-                {{template "partials/order_items" .}}
+
+            <!-- Pestañas por categoría -->
+            {{range $category := .Categories}}
+            <div class="tab-pane fade" id="{{$category}}" role="tabpanel" aria-labelledby="tab-{{$category}}">
+                <div class="row row-cols-2 row-cols-md-3 g-3">
+                    {{range index $.ProductsByCategory $category}}
+                    <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
+                        <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}" data-price="{{.Price}}">
+                            <div class="d-flex flex-column h-100">
+                                <h6>{{.Name}}</h6>
+                                <div class="price mb-2">${{printf "%.2f" .Price}}</div>
+                                <div class="category small text-muted mb-2">{{.Category}}</div>
+                                <div class="mt-auto action-buttons">
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-sm btn-primary w-100"
+                                            onclick="openProductModal(this.parentNode.parentNode.parentNode.parentNode)">
+                                            <i class="bi bi-plus-circle me-1"></i>Añadir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
             </div>
-            <div class="card-footer bg-transparent d-flex justify-content-between align-items-center p-3">
-                <h5 class="mb-0">Total:</h5>
-                <h5 class="mb-0" id="total-price">${{printf "%.2f" .Total}}</h5>
-            </div>
+            {{end}}
         </div>
     </div>
 </div>
@@ -168,6 +200,18 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast para notificaciones -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Notificación</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
         </div>
     </div>
 </div>
@@ -220,6 +264,65 @@
         if (evt.detail.target.id === 'order-items') {
             const modal = bootstrap.Modal.getInstance(document.getElementById('productOptionsModal'));
             if (modal) modal.hide();
+            showToast('Producto añadido a la orden');
+        }
+    });
+
+    // Mostrar toast con mensaje
+    document.body.addEventListener('htmx:afterSettle', function (evt) {
+        // Check if there's a showToast event
+        const eventDetail = evt.detail.xhr && evt.detail.xhr.getResponseHeader('HX-Trigger');
+        if (eventDetail) {
+            try {
+                const triggers = JSON.parse(eventDetail);
+                if (triggers.showToast) {
+                    showToast(triggers.showToast);
+                }
+            } catch (e) {
+                console.error("Error parsing JSON from HX-Trigger:", e);
+            }
+        }
+    });
+
+    // Función para mostrar toast
+    function showToast(message) {
+        const toastEl = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        const toast = new bootstrap.Toast(toastEl);
+
+        toastMessage.textContent = message;
+        toast.show();
+    }
+
+    // Inicializar tooltips de Bootstrap
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+
+    // Manejar eventos de redirección
+    document.body.addEventListener('htmx:beforeRequest', function (evt) {
+        if (evt.detail.elt.getAttribute('hx-post') === '/order/{{.OrderID}}/complete') {
+            console.log("Enviando solicitud para completar orden...");
+        }
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function (evt) {
+        // Si la solicitud es para completar la orden y fue exitosa
+        if (evt.detail.elt.getAttribute('hx-post') === '/order/{{.OrderID}}/complete' &&
+            evt.detail.xhr.status === 200) {
+            console.log("Orden completada, redirigiendo...");
+            window.location.href = '/orders';
+        }
+    });
+
+    document.body.addEventListener('htmx:responseHeaders', function (evt) {
+        var redirectTo = evt.detail.headers['HX-Redirect'];
+        if (redirectTo) {
+            console.log("Redirigiendo a:", redirectTo);
+            window.location.href = redirectTo;
         }
     });
 </script>

@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/template/html/v2"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -155,29 +154,6 @@ func main() {
 		ViewsLayout: "layouts/main",
 	})
 
-	sessionStore = session.New(session.Config{
-		Expiration:     24 * time.Hour,
-		KeyLookup:      "cookie:order_session", // Usa KeyLookup en lugar de CookieName
-		CookieSecure:   false,                  // En producción con HTTPS debería ser true
-		CookiePath:     "/",                    // Importante para que la cookie sea válida en todas las rutas
-		CookieHTTPOnly: true,
-		CookieSameSite: "Lax", // Ayuda con la compatibilidad en navegadores modernos
-	})
-
-	// Aplica el middleware a todas las rutas
-	app.Use(func(c *fiber.Ctx) error {
-		// Asegura que la sesión se crea correctamente para todas las rutas
-		sess, err := sessionStore.Get(c)
-		if err != nil {
-			log.Printf("Error obteniendo sesión middleware: %v", err)
-			// Continuar el flujo a pesar del error
-		} else if sess != nil {
-			// Renovar la sesión en cada request para mantenerla viva
-			sess.SetExpiry(24 * time.Hour)
-		}
-		return c.Next()
-	})
-
 	// Middleware
 	app.Use(logger.New())
 	app.Use(recover.New())
@@ -189,7 +165,6 @@ func main() {
 
 	// Rutas del Dashboard
 	app.Get("/", DashboardHandler)
-	app.Get("/debug/session", DebugSession)
 	// Rutas de Productos
 	app.Get("/products", GetProducts)
 	app.Get("/products/category/:category", GetProductsByCategory)
@@ -211,11 +186,12 @@ func main() {
 	app.Post("/orders/create", CreateOrder)
 	app.Get("/order/:id", GetOrder)
 	app.Post("/order/:id/complete", CompleteOrder)
+	app.Post("/order/:id/process", ProcessOrder) // Nueva ruta para procesar la orden
+	app.Post("/order/:id/cancel", CancelOrder)   // Ruta para cancelar orden
 	app.Post("/order/:id/item", AddItemToOrder)
 	app.Put("/order/item/:id", UpdateOrderItem)
-	app.Delete("/order/item/:id", RemoveOrderItem)
+	app.Delete("/order/:id/item/:itemId", RemoveItemFromOrder)
 	app.Put("/order/:id/notes", UpdateOrderNotes)
-	app.Post("/order/:id/cancel", CancelOrder)
 
 	// Rutas de Cocina
 	app.Get("/kitchen", KitchenHandler)

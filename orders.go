@@ -1,40 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
 )
-
-// Agregar al inicio del archivo, después del package
-// Cerca del inicio del archivo, donde defines las variables globales
-var sessionStore = session.New(session.Config{
-	Expiration:   24 * time.Hour,
-	CookieName:   "order_session",
-	CookieSecure: false, // En producción con HTTPS debería ser true
-})
-
-// OrderTemp representa una orden temporal durante su creación
-type OrderTemp struct {
-	TableNum int             `json:"tableNum"`
-	Items    []OrderItemTemp `json:"items"`
-	Total    float64         `json:"total"`
-}
-
-// OrderItemTemp representa un item en una orden temporal
-type OrderItemTemp struct {
-	ProductID   uint    `json:"productId"`
-	ProductName string  `json:"productName"`
-	Price       float64 `json:"price"`
-	Quantity    int     `json:"quantity"`
-	Notes       string  `json:"notes"`
-	Subtotal    float64 `json:"subtotal"`
-}
 
 // CreateOrder crea una nueva orden para una mesa
 func CreateOrder(c *fiber.Ctx) error {
@@ -56,7 +29,7 @@ func CreateOrder(c *fiber.Ctx) error {
 	// Crear la orden directamente con estado "in_progress"
 	order := Order{
 		TableNum:  tableNum,
-		Status:    "in_progress",
+		Status:    "pending",
 		Total:     0,
 		Notes:     c.FormValue("notes"),
 		CreatedAt: time.Now(),
@@ -196,7 +169,7 @@ func RemoveOrderItem(c *fiber.Ctx) error {
 func GetOrder(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
 	var order Order
@@ -236,6 +209,7 @@ func GetOrder(c *fiber.Ctx) error {
 		"Order":              order,
 		"ProductsByCategory": productsByCategory,
 		"Categories":         categories,
+		"AllProducts":        products,
 		"Items":              order.Items,
 		"OrderID":            order.ID,
 		"TableNum":           order.TableNum,
@@ -248,64 +222,88 @@ func GetOrder(c *fiber.Ctx) error {
 func CompleteOrder(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
+		log.Printf("Error de conversión de ID: %v", err)
 		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
 	var order Order
-	result := db.First(&order, id)
-	if result.Error != nil {
+	if result := db.First(&order, id); result.Error != nil {
+		log.Printf("Orden no encontrada: %v", result.Error)
 		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	order.Status = "completed"
-	db.Save(&order)
-
-	// Liberar la mesa asociada
-	db.Model(&Table{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
-		"occupied": false,
-		"order_id": nil,
-	})
-
-	// Si es una solicitud HTMX, enviar header de redirección para HTMX
-	if c.Get("HX-Request") == "true" {
-		c.Set("HX-Redirect", "/orders")
-		c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(id)+` completada correctamente"}`)
-		return c.SendString("Redirigiendo...")
+	// Verificar que la orden esté en proceso
+	if order.Status != "in_progress" {
+		log.Printf("La orden #%d no está en proceso", id)
+		return c.Status(fiber.StatusBadRequest).SendString("Solo se pueden completar órdenes en proceso")
 	}
 
-	return c.Redirect("/orders")
+	// Marcar la orden como completada
+	log.Printf("Marcando orden #%d como completada", id)
+	order.Status = "completed"
+	order.UpdatedAt = time.Now()
+	if err := db.Save(&order).Error; err != nil {
+		log.Printf("Error al actualizar estado de orden: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al completar la orden")
+	}
+
+	// Liberar la mesa asociada
+	if err := db.Model(&Table{}).Where("number = ?", order.TableNum).Updates(map[string]interface{}{
+		"occupied": false,
+		"order_id": nil,
+	}).Error; err != nil {
+		log.Printf("Error al liberar mesa: %v", err)
+	} else {
+		log.Printf("Mesa %d liberada", order.TableNum)
+	}
+
+	c.Set("HX-Trigger", `{"showToast": "Orden completada correctamente"}`)
+	c.Set("HX-Redirect", "/orders")
+	return c.SendString("Orden completada correctamente")
 }
 
 // CancelOrder cancela una orden
 func CancelOrder(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
+		log.Printf("Error de conversión de ID: %v", err)
 		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
 	var order Order
-	result := db.First(&order, id)
-	if result.Error != nil {
+	if result := db.First(&order, id); result.Error != nil {
+		log.Printf("Orden no encontrada: %v", result.Error)
 		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	order.Status = "cancelled"
-	db.Save(&order)
-
-	// Liberar la mesa asociada
-	db.Model(&Table{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
-		"occupied": false,
-		"order_id": nil,
-	})
-
-	// Si es una solicitud HTMX, enviar header de redirección para HTMX
-	if c.Get("HX-Request") == "true" {
-		c.Set("HX-Redirect", "/orders")
-		c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(id)+` cancelada"}`)
-		return c.SendString("Redirigiendo...")
+	// No permitir cancelar órdenes completadas
+	if order.Status == "completed" {
+		log.Printf("La orden #%d ya está completada y no se puede cancelar", id)
+		return c.Status(fiber.StatusBadRequest).SendString("No se pueden cancelar órdenes completadas")
 	}
 
-	return c.Redirect("/orders")
+	// Marcar la orden como cancelada
+	log.Printf("Cancelando orden #%d", id)
+	order.Status = "cancelled"
+	order.UpdatedAt = time.Now()
+	if err := db.Save(&order).Error; err != nil {
+		log.Printf("Error al cancelar orden: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al cancelar la orden")
+	}
+
+	// Liberar la mesa asociada
+	if err := db.Model(&Table{}).Where("number = ?", order.TableNum).Updates(map[string]interface{}{
+		"occupied": false,
+		"order_id": nil,
+	}).Error; err != nil {
+		log.Printf("Error al liberar mesa: %v", err)
+	} else {
+		log.Printf("Mesa %d liberada", order.TableNum)
+	}
+
+	c.Set("HX-Trigger", `{"showToast": "Orden cancelada"}`)
+	c.Set("HX-Redirect", "/orders")
+	return c.SendString("Orden cancelada correctamente")
 }
 
 // AddItemToOrder añade un producto a la orden
@@ -321,8 +319,8 @@ func AddItemToOrder(c *fiber.Ctx) error {
 	}
 
 	quantity, err := strconv.Atoi(c.FormValue("quantity"))
-	if err != nil || quantity <= 0 {
-		quantity = 1 // Valor predeterminado
+	if err != nil || quantity < 1 {
+		quantity = 1 // Default a 1 si hay un error
 	}
 
 	notes := c.FormValue("notes")
@@ -338,44 +336,58 @@ func AddItemToOrder(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Producto no encontrado")
 	}
 
-	// Verificar si el producto ya existe en la orden
+	// Buscar ítem existente, pero sin usar log cuando no se encuentra
 	var existingItem OrderItem
-	result := db.Where("order_id = ? AND product_id = ? AND notes = ?", orderID, productID, notes).First(&existingItem)
+	var count int64
+	db.Model(&OrderItem{}).Where("order_id = ? AND product_id = ?", orderID, productID).Count(&count)
 
-	if result.Error == nil {
-		// El producto ya existe, aumentar cantidad
+	if count > 0 {
+		// El producto ya existe, actualizar cantidad y notas
+		db.Where("order_id = ? AND product_id = ?", orderID, productID).First(&existingItem)
 		existingItem.Quantity += quantity
-		db.Save(&existingItem)
+		existingItem.Notes = notes
+		if err := db.Save(&existingItem).Error; err != nil {
+			log.Printf("Error al actualizar ítem existente: %v", err)
+			return c.Status(fiber.StatusInternalServerError).SendString("Error al actualizar el ítem")
+		}
+		log.Printf("Actualizado producto #%d en orden #%d, nueva cantidad: %d", productID, orderID, existingItem.Quantity)
 	} else {
-		// Producto nuevo en la orden
-		orderItem := OrderItem{
+		// Crear un nuevo item
+		log.Printf("Agregando producto #%d a la orden #%d, cantidad: %d", productID, orderID, quantity)
+		newItem := OrderItem{
 			OrderID:   uint(orderID),
-			ProductID: product.ID,
+			ProductID: uint(productID),
 			Quantity:  quantity,
 			Notes:     notes,
-			IsReady:   false,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
-		db.Create(&orderItem)
+		if err := db.Create(&newItem).Error; err != nil {
+			log.Printf("Error al crear nuevo ítem: %v", err)
+			return c.Status(fiber.StatusInternalServerError).SendString("Error al añadir el producto")
+		}
 	}
 
 	// Actualizar total de la orden
-	var allItems []OrderItem
-	db.Where("order_id = ?", orderID).Preload("Product").Find(&allItems)
+	var items []OrderItem
+	db.Where("order_id = ?", orderID).Preload("Product").Find(&items)
 
 	total := 0.0
-	for _, item := range allItems {
+	for _, item := range items {
 		total += item.Product.Price * float64(item.Quantity)
 	}
 
 	order.Total = total
-	db.Save(&order)
+	if err := db.Save(&order).Error; err != nil {
+		log.Printf("Error al actualizar total de orden: %v", err)
+	}
 
 	// Devolver la vista actualizada
-	c.Set("HX-Trigger", `{"showToast": "Producto añadido"}`)
+	db.Preload("Items").Preload("Items.Product").First(&order, orderID)
 
+	c.Set("HX-Trigger", `{"showToast": "Producto añadido a la orden"}`)
 	return c.Render("partials/order_items", fiber.Map{
 		"Order": order,
-		"Items": allItems,
 	}, "")
 }
 
@@ -627,397 +639,36 @@ func UpdateOrderNotes(c *fiber.Ctx) error {
 	return c.SendString("Notas actualizadas")
 }
 
-func AddItemToTempOrder(c *fiber.Ctx) error {
-	// Obtener ID de orden directamente del formulario
-	orderIDStr := c.FormValue("order_id")
-	if orderIDStr == "" {
-		log.Printf("No se proporcionó ID de orden en el formulario")
-		return c.Status(fiber.StatusBadRequest).SendString("No se especificó el ID de orden")
-	}
-
-	orderID, err := strconv.Atoi(orderIDStr)
+// ProcessOrder marca una orden como en proceso (enviada a cocina)
+func ProcessOrder(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		log.Printf("Error convirtiendo ID de orden: %v", err)
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
+		log.Printf("Error de conversión de ID: %v", err)
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
-	// Verificar que la orden existe
 	var order Order
-	if result := db.First(&order, orderID).Error; result != nil {
-		log.Printf("Orden no encontrada: %v", result)
+	if result := db.First(&order, id); result.Error != nil {
+		log.Printf("Orden no encontrada: %v", result.Error)
 		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	// Obtener datos del producto a añadir
-	productID, err := strconv.Atoi(c.FormValue("product_id"))
-	if err != nil {
-		log.Printf("ID de producto inválido: %v", err)
-		return c.Status(fiber.StatusBadRequest).SendString("ID de producto inválido")
+	// Verificar que la orden esté en estado pendiente
+	if order.Status != "pending" {
+		log.Printf("La orden #%d no está en estado pendiente", id)
+		return c.Status(fiber.StatusBadRequest).SendString("Solo se pueden procesar órdenes pendientes")
 	}
 
-	quantity, err := strconv.Atoi(c.FormValue("quantity"))
-	if err != nil || quantity <= 0 {
-		quantity = 1 // Valor predeterminado
-	}
-
-	notes := c.FormValue("notes")
-
-	// Buscar información del producto
-	var product Product
-	if err := db.First(&product, productID).Error; err != nil {
-		log.Printf("Producto no encontrado: %v", err)
-		return c.Status(fiber.StatusNotFound).SendString("Producto no encontrado")
-	}
-
-	// Buscar si ya existe este producto en la orden
-	var existingItem OrderItem
-	result := db.Where("order_id = ? AND product_id = ? AND notes = ?", orderID, productID, notes).First(&existingItem)
-
-	if result.Error == nil {
-		// Ya existe, actualizar cantidad
-		existingItem.Quantity += quantity
-		db.Save(&existingItem)
-	} else {
-		// Crear nuevo item
-		newItem := OrderItem{
-			OrderID:   uint(orderID),
-			ProductID: product.ID,
-			Quantity:  quantity,
-			Notes:     notes,
-			IsReady:   false,
-		}
-		db.Create(&newItem)
-	}
-
-	// Recalcular total
-	var allItems []OrderItem
-	db.Where("order_id = ?", orderID).Preload("Product").Find(&allItems)
-
-	total := 0.0
-	for _, item := range allItems {
-		total += item.Product.Price * float64(item.Quantity)
-	}
-
-	// Actualizar total en la orden
-	order.Total = total
-	db.Save(&order)
-
-	// Notificar éxito
-	c.Set("HX-Trigger", `{"showToast": "Producto añadido"}`)
-
-	// Devolver HTML actualizado
-	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     allItems,
-		"Total":     total,
-		"ItemCount": len(allItems),
-		"OrderID":   orderID,
-	}, "")
-}
-
-// RemoveItemFromTempOrder elimina un item de la orden
-func RemoveItemFromTempOrder(c *fiber.Ctx) error {
-	// Obtener el ID del ítem a eliminar
-	itemID, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		log.Printf("ID de ítem inválido: %v", err)
-		return c.Status(fiber.StatusBadRequest).SendString("ID de ítem inválido")
-	}
-
-	// Obtener el ID de la orden desde query params
-	orderIDStr := c.Query("order_id")
-	if orderIDStr == "" {
-		log.Printf("RemoveItemFromTempOrder: No se encontró order_id. URL: %s", c.OriginalURL())
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden no especificado")
-	}
-
-	orderID, err := strconv.Atoi(orderIDStr)
-	if err != nil {
-		log.Printf("Error convirtiendo order_id '%s': %v", orderIDStr, err)
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
-	}
-
-	// Verificar que la orden exista
-	var order Order
-	if result := db.First(&order, orderID).Error; result != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	// Encontrar el item directamente por su ID
-	var item OrderItem
-	if err := db.First(&item, itemID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Ítem no encontrado")
-	}
-
-	// Verificar que el item pertenezca a esta orden
-	if item.OrderID != uint(orderID) {
-		return c.Status(fiber.StatusBadRequest).SendString("El ítem no pertenece a esta orden")
-	}
-
-	// Eliminar el ítem
-	if err := db.Delete(&item).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al eliminar ítem")
-	}
-
-	// Recalcular total
-	var allRemainingItems []OrderItem
-	db.Where("order_id = ?", orderID).Preload("Product").Find(&allRemainingItems)
-
-	total := 0.0
-	for _, item := range allRemainingItems {
-		total += item.Product.Price * float64(item.Quantity)
-	}
-
-	// Actualizar total de la orden
-	db.Model(&Order{}).Where("id = ?", orderID).Update("total", total)
-
-	// Notificar éxito
-	c.Set("HX-Trigger", `{"showToast": "Producto eliminado de la orden"}`)
-
-	// Devolver HTML actualizado
-	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     allRemainingItems,
-		"Total":     total,
-		"ItemCount": len(allRemainingItems),
-		"OrderID":   orderID,
-	}, "")
-}
-
-// UpdateTempOrderItemQuantity actualiza la cantidad de un ítem
-func UpdateTempOrderItemQuantity(c *fiber.Ctx) error {
-	// Obtener ID del ítem directamente
-	itemID, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID de ítem inválido")
-	}
-
-	action := c.Params("action") // "increase" o "decrease"
-	if action != "increase" && action != "decrease" {
-		return c.Status(fiber.StatusBadRequest).SendString("Acción inválida")
-	}
-
-	// Obtener el ID de la orden desde query params
-	orderIDStr := c.Query("order_id")
-	if orderIDStr == "" {
-		log.Printf("UpdateTempOrderItemQuantity: No se encontró order_id. URL: %s", c.OriginalURL())
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden no especificado")
-	}
-
-	orderID, err := strconv.Atoi(orderIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
-	}
-
-	// Verificar que la orden exista
-	var order Order
-	if result := db.First(&order, orderID).Error; result != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	// Encontrar el item directamente por su ID
-	var item OrderItem
-	if err := db.First(&item, itemID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Ítem no encontrado")
-	}
-
-	// Verificar que el item pertenezca a esta orden
-	if item.OrderID != uint(orderID) {
-		return c.Status(fiber.StatusBadRequest).SendString("El ítem no pertenece a esta orden")
-	}
-
-	// Actualizar la cantidad según la acción
-	if action == "increase" {
-		item.Quantity++
-		// Guardar cambio de cantidad
-		if err := db.Save(&item).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Error al actualizar cantidad")
-		}
-	} else if action == "decrease" {
-		if item.Quantity > 1 {
-			item.Quantity--
-			// Guardar cambio de cantidad
-			if err := db.Save(&item).Error; err != nil {
-				return c.Status(fiber.StatusInternalServerError).SendString("Error al actualizar cantidad")
-			}
-		} else {
-			// Si la cantidad llega a 0, eliminar el ítem
-			if err := db.Delete(&item).Error; err != nil {
-				return c.Status(fiber.StatusInternalServerError).SendString("Error al eliminar ítem")
-			}
-		}
-	}
-
-	// Recalcular total
-	var updatedItems []OrderItem
-	db.Where("order_id = ?", orderID).Preload("Product").Find(&updatedItems)
-
-	total := 0.0
-	for _, item := range updatedItems {
-		total += item.Product.Price * float64(item.Quantity)
-	}
-
-	// Actualizar total de la orden
-	db.Model(&Order{}).Where("id = ?", orderID).Update("total", total)
-
-	// Notificar éxito
-	c.Set("HX-Trigger", `{"showToast": "Cantidad actualizada"}`)
-
-	// Devolver HTML actualizado
-	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     updatedItems,
-		"Total":     total,
-		"ItemCount": len(updatedItems),
-		"OrderID":   orderID,
-	}, "")
-}
-
-// Simplificar la función ClearTempOrder para usar solo query parameters
-func ClearTempOrder(c *fiber.Ctx) error {
-	// Obtener el ID de la orden solamente desde query params para solicitudes DELETE
-	orderIDStr := c.Query("order_id")
-	if orderIDStr == "" {
-		log.Printf("ClearTempOrder: No se encontró order_id en QueryParams. URL: %s", c.OriginalURL())
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden no especificado")
-	}
-
-	log.Printf("ClearTempOrder recibido con order_id (query): %s", orderIDStr)
-
-	orderID, err := strconv.Atoi(orderIDStr)
-	if err != nil {
-		log.Printf("Error convirtiendo order_id '%s' a entero: %v", orderIDStr, err)
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
-	}
-
-	// Verificar que la orden exista
-	var order Order
-	if result := db.First(&order, orderID).Error; result != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	// Eliminar todos los ítems de la orden
-	if err := db.Where("order_id = ?", orderID).Delete(&OrderItem{}).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al eliminar ítems")
-	}
-
-	// Actualizar total de la orden a cero
-	db.Model(&Order{}).Where("id = ?", orderID).Update("total", 0)
-
-	// Notificar limpieza
-	c.Set("HX-Trigger", `{"showToast": "Orden limpiada"}`)
-
-	// Devolver HTML actualizado
-	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     []OrderItem{},
-		"Total":     0.0,
-		"ItemCount": 0,
-		"OrderID":   orderID,
-	}, "")
-}
-
-func ConfirmTempOrder(c *fiber.Ctx) error {
-	// Obtener ID de orden directamente del formulario
-	orderIDStr := c.FormValue("order_id")
-	if orderIDStr == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("No se especificó el ID de orden")
-	}
-
-	orderID, err := strconv.Atoi(orderIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
-	}
-
-	// Obtener la orden
-	var order Order
-	if result := db.Preload("Items").First(&order, orderID).Error; result != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	// Validar que haya productos
-	if len(order.Items) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "La orden debe tener al menos un producto",
-		})
-	}
-
-	// Notas adicionales
-	notes := c.FormValue("notes")
-	if notes != "" {
-		order.Notes = notes
-	}
-
-	// Cambiar estado de la orden a pending
-	order.Status = "pending"
-
-	// Actualizar la orden
+	// Cambiar el estado a "in_progress"
+	log.Printf("Enviando orden #%d a cocina", id)
+	order.Status = "in_progress"
+	order.UpdatedAt = time.Now()
 	if err := db.Save(&order).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Error al confirmar la orden",
-		})
+		log.Printf("Error al actualizar estado de orden: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al procesar la orden")
 	}
 
-	// Notificar éxito y redireccionar
-	c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(int(order.ID))+` confirmada correctamente"}`)
+	c.Set("HX-Trigger", `{"showToast": "Orden enviada a cocina"}`)
 	c.Set("HX-Redirect", "/orders")
-	return c.SendString("Orden confirmada correctamente. Redirigiendo...")
-}
-
-// Añade esta función de diagnóstico
-func DebugSession(c *fiber.Ctx) error {
-	sess, err := sessionStore.Get(c)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error obteniendo sesión: " + err.Error(),
-		})
-	}
-
-	orderTempJSON := sess.Get("orderTemp")
-	if orderTempJSON == nil {
-		return c.JSON(fiber.Map{
-			"status":    "No hay orden temporal en la sesión",
-			"sessionID": sess.ID(),
-		})
-	}
-
-	var orderTemp OrderTemp
-	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
-		return c.JSON(fiber.Map{
-			"error":     "Error deserializando orden: " + err.Error(),
-			"sessionID": sess.ID(),
-			"raw":       orderTempJSON,
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"status":    "Orden temporal encontrada",
-		"sessionID": sess.ID(),
-		"orderTemp": orderTemp,
-	})
-}
-
-// GetTempOrderSummary obtiene el resumen de la orden temporal para el modal de confirmación
-func GetTempOrderSummary(c *fiber.Ctx) error {
-	// Obtener ID de orden desde query param
-	orderIDStr := c.Query("order_id")
-	if orderIDStr == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("No se especificó el ID de orden")
-	}
-
-	orderID, err := strconv.Atoi(orderIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
-	}
-
-	// Obtener la orden con sus items
-	var order Order
-	if err := db.Preload("Items").Preload("Items.Product").First(&order, orderID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
-	}
-
-	// Renderizar el resumen
-	return c.Render("partials/confirm_order_summary", fiber.Map{
-		"Items":    order.Items,
-		"Total":    order.Total,
-		"TableNum": order.TableNum,
-	}, "")
+	return c.SendString("Orden enviada a cocina correctamente")
 }
