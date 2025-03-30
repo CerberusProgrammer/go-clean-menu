@@ -10,30 +10,30 @@
 </div>
 {{else}}
 <ul class="list-unstyled m-0">
-    {{range $index, $item := .Items}}
-    <li id="order-item-{{$index}}" class="order-item py-2">
+    {{range $item := .Items}}
+    <li id="order-item-{{$item.ID}}" class="order-item py-2">
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <div class="d-flex align-items-center">
                     <div class="btn-group btn-group-sm me-2" role="group">
                         <button type="button" class="btn btn-outline-secondary"
-                            hx-put="/order/temp/item/{{$index}}/quantity/decrease?order_id={{$.OrderID}}"
+                            hx-put="/order/temp/item/{{$item.ID}}/quantity/decrease?order_id={{$.OrderID}}"
                             hx-target="#order-preview">−</button>
-                        <span class="btn btn-outline-secondary px-2">{{.Quantity}}</span>
+                        <span class="btn btn-outline-secondary px-2">{{$item.Quantity}}</span>
                         <button type="button" class="btn btn-outline-secondary"
-                            hx-put="/order/temp/item/{{$index}}/quantity/increase?order_id={{$.OrderID}}"
+                            hx-put="/order/temp/item/{{$item.ID}}/quantity/increase?order_id={{$.OrderID}}"
                             hx-target="#order-preview">+</button>
                     </div>
-                    <strong>{{.Product.Name}}</strong>
+                    <strong>{{$item.Product.Name}}</strong>
                 </div>
-                {{if .Notes}}
-                <small class="text-muted d-block">{{.Notes}}</small>
+                {{if $item.Notes}}
+                <small class="text-muted d-block">{{$item.Notes}}</small>
                 {{end}}
             </div>
             <div class="d-flex align-items-center">
-                <span class="me-3">${{printf "%.2f" (multiply .Product.Price .Quantity)}}</span>
+                <span class="me-3">${{printf "%.2f" (multiply $item.Product.Price $item.Quantity)}}</span>
                 <button class="btn btn-sm btn-outline-danger"
-                    hx-delete="/order/temp/item/{{$index}}?order_id={{$.OrderID}}" hx-target="#order-preview">
+                    hx-delete="/order/temp/item/{{$item.ID}}?order_id={{$.OrderID}}" hx-target="#order-preview">
                     <i class="bi bi-trash3"></i>
                 </button>
             </div>
@@ -52,10 +52,9 @@
 <!-- Valor oculto para el ID de orden -->
 <input type="hidden" id="currentOrderID" value="{{.OrderID}}">
 
-<!-- Script para actualizar elementos de la UI -->
 <script>
     // Actualizar el contador de items en el botón de confirmar orden
-    var itemCount = {{ if .ItemCount }}{ {.ItemCount } } { {else } } 0{ { end } };
+    var itemCount = "{{if .ItemCount }}{{.ItemCount}}{{else}}0{{ end }}";
     var itemCountBadge = document.getElementById('itemCountBadge');
     if (itemCountBadge) {
         itemCountBadge.textContent = itemCount;

@@ -31,14 +31,13 @@ type Category struct {
 type Order struct {
 	ID        uint           `json:"id" gorm:"primaryKey"`
 	TableNum  int            `json:"table_num"`
-	Status    string         `json:"status"` // "pending", "completed", "cancelled"
+	Status    string         `json:"status"` // "pending", "completed", "cancelled", NEW: -> "in_progress"
 	Total     float64        `json:"total"`
 	Items     []OrderItem    `json:"items" gorm:"foreignKey:OrderID"`
 	Notes     string         `json:"notes"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-	SessionID string         `json:"session_id"`
 }
 
 // OrderItem representa un producto en una orden

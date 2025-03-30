@@ -206,25 +206,16 @@ func main() {
 	app.Post("/categories", CreateCategory)
 	app.Get("/categories/list", GetCategoryList)
 
-	// Rutas de órdenes
-	app.Get("/orders", OrdersHandler)
-	app.Post("/orders", CreateOrder)
+	// Rutas para órdenes
+	app.Get("/orders", GetOrders)
+	app.Post("/orders/create", CreateOrder)
 	app.Get("/order/:id", GetOrder)
-	app.Post("/order/:id/add-item", AddItemToOrder)
-	app.Delete("/order/:id/item/:itemId", RemoveItemFromOrder)
 	app.Post("/order/:id/complete", CompleteOrder)
-	app.Delete("/order/:id", CancelOrder)
-	app.Post("/order/:id/print", PrintOrder)
-	app.Post("/order/:id/email", EmailOrder)
-	app.Post("/order/:id/duplicate", DuplicateOrder)
-
-	// En la sección de rutas para órdenes temporales:
-	app.Post("/order/temp/item", AddItemToTempOrder)
-	app.Delete("/order/temp/item/:index", RemoveItemFromTempOrder)
-	app.Put("/order/temp/item/:index/quantity/:action", UpdateTempOrderItemQuantity)
-	app.Delete("/order/temp", ClearTempOrder)
-	app.Post("/order/temp/confirm", ConfirmTempOrder)
-	app.Get("/order/temp/summary", GetTempOrderSummary)
+	app.Post("/order/:id/item", AddItemToOrder)
+	app.Put("/order/item/:id", UpdateOrderItem)
+	app.Delete("/order/item/:id", RemoveOrderItem)
+	app.Put("/order/:id/notes", UpdateOrderNotes)
+	app.Post("/order/:id/cancel", CancelOrder)
 
 	// Rutas de Cocina
 	app.Get("/kitchen", KitchenHandler)

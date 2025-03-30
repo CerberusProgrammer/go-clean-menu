@@ -9,24 +9,32 @@ import (
 
 // KitchenHandler muestra la vista de cocina
 func KitchenHandler(c *fiber.Ctx) error {
-	return c.Render("kitchen", fiber.Map{
-		"Title":      "Vista de Cocina",
-		"ActivePage": "kitchen",
-	})
-}
-
-// GetKitchenOrders actualiza la vista de la cocina (para peticiones HTMX)
-func GetKitchenOrders(c *fiber.Ctx) error {
-	var pendingOrders []Order
-	db.Where("status = ?", "pending").
+	var orders []Order
+	db.Where("status IN (?)", []string{"pending", "in_progress"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
-		Find(&pendingOrders)
+		Find(&orders)
+
+	return c.Render("kitchen", fiber.Map{
+		"Title":      "Cocina",
+		"ActivePage": "kitchen",
+		"Orders":     orders,
+	})
+}
+
+// GetKitchenOrders devuelve la lista actualizada de órdenes para la cocina
+func GetKitchenOrders(c *fiber.Ctx) error {
+	var orders []Order
+	db.Where("status IN (?)", []string{"pending", "in_progress"}).
+		Order("created_at asc").
+		Preload("Items").
+		Preload("Items.Product").
+		Find(&orders)
 
 	return c.Render("partials/kitchen_orders", fiber.Map{
-		"Orders": pendingOrders,
-	}, "") // Add the empty string as the third parameter to render without layout
+		"Orders": orders,
+	}, "")
 }
 
 // ToggleItemStatus marca/desmarca un producto como listo

@@ -1,22 +1,52 @@
-<div class="mb-4 d-flex justify-content-between align-items-center">
-    <h1 class="page-title"><i class="bi bi-fire"></i> Vista de Cocina</h1>
-    <button class="btn macos-btn" hx-get="/kitchen/orders" hx-target="#kitchen-orders">
-        <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
-    </button>
+{{if not .Orders}}
+<div class="macos-card p-5 text-center">
+    <i class="bi bi-cup-hot fs-1 text-secondary"></i>
+    <h4 class="mt-3">No hay órdenes pendientes</h4>
+    <p>Todas las órdenes han sido completadas</p>
 </div>
+{{else}}
+<div class="row row-cols-1 row-cols-md-2 g-4">
+    {{range .Orders}}
+    <div class="col">
+        <div class="macos-card h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Mesa {{.TableNum}} - Orden #{{.ID}}</h5>
+                <span class="badge {{if eq .Status " in_progress"}}bg-info{{else}}bg-primary{{end}}">
+                    {{if eq .Status "in_progress"}}En Proceso{{else}}Pendiente{{end}} {{formatTime .CreatedAt}}
+                </span>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush mb-3">
+                    {{range .Items}}
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-secondary me-2">{{.Quantity}}x</span>
+                            <strong>{{.Product.Name}}</strong>
+                            {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
+                        </div>
+                        <div>
+                            <button class="btn btn-sm {{if .IsReady}}btn-success{{else}}btn-outline-success{{end}}"
+                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-target="#kitchen-orders" hx-trigger="click">
+                                {{if .IsReady}}<i class="bi bi-check-circle"></i> Listo{{else}}Marcar{{end}}
+                            </button>
+                        </div>
+                    </li>
+                    {{end}}
+                </ul>
 
-<div id="kitchen-orders" hx-get="/kitchen/orders" hx-trigger="load, every 30s">
-    <!-- El contenido se cargará dinámicamente -->
+                <div class="progress mt-3" title="Progreso de preparación">
+                    <div class="progress-bar" role="progressbar" hx-get="/kitchen/order/{{.ID}}/status"
+                        hx-trigger="load, every 10s" hx-swap="outerHTML"></div>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <button class="btn macos-btn macos-btn-primary" hx-post="/kitchen/order/{{.ID}}/complete"
+                    hx-target="#kitchen-orders" hx-confirm="¿Marcar esta orden como completada?">
+                    <i class="bi bi-check2-all me-2"></i>Completar
+                </button>
+            </div>
+        </div>
+    </div>
+    {{end}}
 </div>
-
-<script>
-    // Funciones específicas para la vista de cocina
-    document.body.addEventListener('htmx:afterSwap', function (e) {
-        if (e.detail.target.id === 'kitchen-orders') {
-            // Sonido de notificación si hay nuevas órdenes
-            const orderCount = document.querySelectorAll('#kitchen-orders .macos-card').length;
-            if (orderCount > 0 && !document.hidden) {
-            }
-        }
-    });
-</script>
+{{end}}
