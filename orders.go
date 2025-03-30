@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -36,7 +35,6 @@ type OrderItemTemp struct {
 	Subtotal    float64 `json:"subtotal"`
 }
 
-// CreateOrder crea una nueva orden
 func CreateOrder(c *fiber.Ctx) error {
 	tableNum, err := strconv.Atoi(c.FormValue("table_num"))
 	if err != nil {
@@ -51,14 +49,13 @@ func CreateOrder(c *fiber.Ctx) error {
 	}
 
 	if table.Occupied {
-		// Verificar si ya hay una orden pendiente para esta mesa
 		return c.Status(fiber.StatusBadRequest).SendString("Esta mesa ya está ocupada")
 	}
 
-	// Crear la orden con el estado pendiente
+	// Crear la orden con el estado pendiente (cambiado de "pending" a "draft")
 	order := Order{
 		TableNum:  tableNum,
-		Status:    "pending",
+		Status:    "draft", // Cambiado de "pending" a "draft"
 		Total:     0,
 		CreatedAt: time.Now(),
 	}
@@ -83,7 +80,6 @@ func CreateOrder(c *fiber.Ctx) error {
 	return c.Redirect("/order/" + strconv.Itoa(int(order.ID)))
 }
 
-// GetOrder obtiene los detalles de una orden
 func GetOrder(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
@@ -110,12 +106,29 @@ func GetOrder(c *fiber.Ctx) error {
 	var categories []string
 	db.Model(&Product{}).Where("is_available = ?", true).Distinct().Order("category").Pluck("category", &categories)
 
+	// Calcular total (por si acaso)
+	total := 0.0
+	for _, item := range order.Items {
+		total += item.Product.Price * float64(item.Quantity)
+	}
+
+	// Si el total calculado no coincide con el almacenado, actualizar
+	if total != order.Total {
+		order.Total = total
+		db.Save(&order)
+	}
+
 	return c.Render("order", fiber.Map{
 		"Title":              "Detalle de Orden #" + strconv.Itoa(id),
 		"ActivePage":         "orders",
 		"Order":              order,
 		"ProductsByCategory": productsByCategory,
 		"Categories":         categories,
+		"Items":              order.Items,
+		"OrderID":            order.ID,
+		"TableNum":           order.TableNum,
+		"Total":              order.Total,
+		"ItemCount":          len(order.Items),
 	})
 }
 
@@ -440,11 +453,10 @@ func UpdateOrderNotes(c *fiber.Ctx) error {
 	return c.SendString("Notas actualizadas")
 }
 
-// GetNewOrderPage muestra la página para crear una nueva orden
+// Reemplaza el método GetNewOrderPage existente
 func GetNewOrderPage(c *fiber.Ctx) error {
 	tableNum, err := strconv.Atoi(c.Params("tableNum"))
 	if err != nil {
-		log.Printf("Error en número de mesa: %v", err)
 		return c.Status(fiber.StatusBadRequest).SendString("Número de mesa inválido")
 	}
 
@@ -452,19 +464,61 @@ func GetNewOrderPage(c *fiber.Ctx) error {
 	var table Table
 	result := db.Where("number = ?", tableNum).First(&table)
 	if result.Error != nil {
-		log.Printf("Mesa no encontrada: %v", result.Error)
 		return c.Status(fiber.StatusNotFound).SendString("Mesa no encontrada")
 	}
 
 	if table.Occupied {
-		log.Printf("Mesa %d ya ocupada", tableNum)
 		return c.Status(fiber.StatusBadRequest).SendString("Esta mesa ya está ocupada")
+	}
+
+	// Crear sesión para identificar al usuario
+	sess, err := sessionStore.Get(c)
+	if err != nil {
+		log.Printf("Error obteniendo sesión: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Error de sesión")
+	}
+
+	// Generar ID único para la sesión si no existe
+	sessionID := sess.ID()
+
+	// Verificar si ya existe una orden en draft para esta sesión
+	var existingDraftOrder Order
+	draftResult := db.Where("session_id = ? AND status = ?", sessionID, "draft").First(&existingDraftOrder)
+
+	var orderID uint
+
+	if draftResult.Error == nil {
+		// Ya existe una orden en borrador, usaremos esa
+		orderID = existingDraftOrder.ID
+		log.Printf("Usando orden en borrador existente ID: %d", orderID)
+	} else {
+		// Crear nueva orden en draft
+		draftOrder := Order{
+			TableNum:  tableNum,
+			Status:    "draft",
+			Total:     0,
+			SessionID: sessionID,
+			CreatedAt: time.Now(),
+		}
+
+		if dbResult := db.Create(&draftOrder).Error; dbResult != nil {
+			log.Printf("Error creando orden borrador: %v", dbResult)
+			return c.Status(fiber.StatusInternalServerError).SendString("Error al crear orden temporal")
+		}
+
+		orderID = draftOrder.ID
+		log.Printf("Nueva orden en borrador creada con ID: %d", orderID)
+	}
+
+	// Guardar ID de la orden draft en la sesión para referencia rápida
+	sess.Set("draft_order_id", orderID)
+	if err := sess.Save(); err != nil {
+		log.Printf("Error guardando sesión: %v", err)
 	}
 
 	// Obtener todos los productos disponibles
 	var products []Product
-	db.Where("is_available = ?", true).Order("category, name").Find(&products)
-	log.Printf("Productos cargados: %d", len(products))
+	db.Where("is_available = ?", true).Order("name").Find(&products)
 
 	// Agrupar productos por categoría
 	productsByCategory := make(map[string][]Product)
@@ -476,114 +530,61 @@ func GetNewOrderPage(c *fiber.Ctx) error {
 	var categories []string
 	db.Model(&Product{}).Where("is_available = ?", true).Distinct().Order("category").Pluck("category", &categories)
 
-	// Inicializar orden temporal en la sesión
-	// IMPORTANTE: Primero crear una nueva sesión
-	sess, err := sessionStore.Get(c)
-	if err != nil {
-		log.Printf("Error obteniendo sesión: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener sesión")
+	// Obtener items actuales si la orden ya tenía algunos
+	var orderItems []OrderItem
+	db.Where("order_id = ?", orderID).Preload("Product").Find(&orderItems)
+
+	// Calcular total actual
+	var total float64 = 0
+	for _, item := range orderItems {
+		total += item.Product.Price * float64(item.Quantity)
 	}
-
-	// Crear una nueva orden temporal limpia
-	orderTemp := OrderTemp{
-		TableNum: tableNum,
-		Items:    []OrderItemTemp{}, // Inicializar con slice vacío (no nil)
-		Total:    0.0,
-	}
-
-	// Serializar y guardar en sesión
-	orderTempJSON, err := json.Marshal(orderTemp)
-	if err != nil {
-		log.Printf("Error serializando orden: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al inicializar orden")
-	}
-
-	// Limpiar cualquier valor previo y establecer el nuevo
-	sess.Delete("orderTemp")
-	sess.Set("orderTemp", string(orderTempJSON))
-
-	// Guardar la sesión inmediatamente
-	if err := sess.Save(); err != nil {
-		log.Printf("Error guardando sesión: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al guardar sesión")
-	}
-
-	// Log para debugging
-	log.Printf("Orden temporal creada para mesa %d, items: %d",
-		tableNum, len(orderTemp.Items))
 
 	return c.Render("order", fiber.Map{
-		"Title":              "Nueva Orden - Mesa " + strconv.Itoa(tableNum),
+		"Title":              "Nueva Orden",
 		"ActivePage":         "orders",
 		"TableNum":           tableNum,
-		"AllProducts":        products,
+		"Products":           products,
 		"ProductsByCategory": productsByCategory,
 		"Categories":         categories,
-		"Items":              orderTemp.Items,
-		"Total":              orderTemp.Total,
-		"ItemCount":          0, // Explícitamente 0
+		"Items":              orderItems,
+		"OrderID":            orderID,
+		"Total":              total,
+		"ItemCount":          len(orderItems),
 	})
 }
 
-// AddItemToTempOrder añade un producto a la orden temporal
 func AddItemToTempOrder(c *fiber.Ctx) error {
-	// Obtener sesión
-	sess, err := sessionStore.Get(c)
+	// Obtener ID de orden directamente del formulario
+	orderIDStr := c.FormValue("order_id")
+	if orderIDStr == "" {
+		log.Printf("No se proporcionó ID de orden en el formulario")
+		return c.Status(fiber.StatusBadRequest).SendString("No se especificó el ID de orden")
+	}
+
+	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {
-		log.Printf("AddItemToTempOrder - Error obteniendo sesión: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener sesión")
+		log.Printf("Error convirtiendo ID de orden: %v", err)
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	// Obtener orden temporal
-	orderTempJSON := sess.Get("orderTemp")
-	if orderTempJSON == nil {
-		log.Printf("AddItemToTempOrder - No se encontró orden temporal en sesión")
-
-		// Si llega un parámetro de mesa, podemos crear una nueva orden temporal
-		tableNum := 0
-		if tableNumStr := c.Query("table"); tableNumStr != "" {
-			tableNum, _ = strconv.Atoi(tableNumStr)
-
-			// Crear nueva orden temporal
-			orderTemp := OrderTemp{
-				TableNum: tableNum,
-				Items:    []OrderItemTemp{},
-				Total:    0.0,
-			}
-
-			// Serializar y guardar
-			newJSON, _ := json.Marshal(orderTemp)
-			sess.Set("orderTemp", string(newJSON))
-			if err := sess.Save(); err != nil {
-				log.Printf("Error al guardar sesión nueva: %v", err)
-			}
-
-			// Redirigir a la página de nueva orden
-			if tableNum > 0 {
-				c.Set("HX-Redirect", fmt.Sprintf("/new-order/table/%d", tableNum))
-				return c.SendString("Redirigiendo...")
-			}
-		}
-
-		return c.Status(fiber.StatusBadRequest).SendString("No hay orden temporal en curso. Regrese a la página de mesas e inicie una nueva orden.")
-	}
-
-	var orderTemp OrderTemp
-	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
-		log.Printf("AddItemToTempOrder - Error deserializando orden: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer orden temporal")
+	// Verificar que la orden existe
+	var order Order
+	if result := db.First(&order, orderID).Error; result != nil {
+		log.Printf("Orden no encontrada: %v", result)
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
 	// Obtener datos del producto a añadir
 	productID, err := strconv.Atoi(c.FormValue("product_id"))
 	if err != nil {
-		log.Printf("AddItemToTempOrder - ID de producto inválido: %v", err)
+		log.Printf("ID de producto inválido: %v", err)
 		return c.Status(fiber.StatusBadRequest).SendString("ID de producto inválido")
 	}
 
 	quantity, err := strconv.Atoi(c.FormValue("quantity"))
 	if err != nil || quantity <= 0 {
-		quantity = 1 // Si hay error o es menor o igual a 0, usar 1 como valor predeterminado
+		quantity = 1 // Valor predeterminado
 	}
 
 	notes := c.FormValue("notes")
@@ -591,259 +592,289 @@ func AddItemToTempOrder(c *fiber.Ctx) error {
 	// Buscar información del producto
 	var product Product
 	if err := db.First(&product, productID).Error; err != nil {
-		log.Printf("AddItemToTempOrder - Producto no encontrado: %v", err)
+		log.Printf("Producto no encontrado: %v", err)
 		return c.Status(fiber.StatusNotFound).SendString("Producto no encontrado")
 	}
 
-	// Verificar si el producto ya existe en la orden
-	found := false
-	for i, item := range orderTemp.Items {
-		if item.ProductID == uint(productID) && item.Notes == notes {
-			// Actualizar cantidad si ya existe
-			orderTemp.Items[i].Quantity += quantity
-			orderTemp.Items[i].Subtotal = product.Price * float64(orderTemp.Items[i].Quantity)
-			found = true
-			break
-		}
-	}
+	// Buscar si ya existe este producto en la orden
+	var existingItem OrderItem
+	result := db.Where("order_id = ? AND product_id = ? AND notes = ?", orderID, productID, notes).First(&existingItem)
 
-	// Si no existe, añadir nuevo item
-	if !found {
-		newItem := OrderItemTemp{
-			ProductID:   product.ID,
-			ProductName: product.Name,
-			Price:       product.Price,
-			Quantity:    quantity,
-			Notes:       notes,
-			Subtotal:    product.Price * float64(quantity),
+	if result.Error == nil {
+		// Ya existe, actualizar cantidad
+		existingItem.Quantity += quantity
+		db.Save(&existingItem)
+	} else {
+		// Crear nuevo item
+		newItem := OrderItem{
+			OrderID:   uint(orderID),
+			ProductID: product.ID,
+			Quantity:  quantity,
+			Notes:     notes,
+			IsReady:   false,
 		}
-		orderTemp.Items = append(orderTemp.Items, newItem)
+		db.Create(&newItem)
 	}
 
 	// Recalcular total
+	var allItems []OrderItem
+	db.Where("order_id = ?", orderID).Preload("Product").Find(&allItems)
+
 	total := 0.0
-	for _, item := range orderTemp.Items {
-		total += item.Subtotal
-	}
-	orderTemp.Total = total
-
-	// Guardar orden actualizada en sesión
-	updatedJSON, err := json.Marshal(orderTemp)
-	if err != nil {
-		log.Printf("AddItemToTempOrder - Error serializando orden actualizada: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error actualizando orden")
+	for _, item := range allItems {
+		total += item.Product.Price * float64(item.Quantity)
 	}
 
-	sess.Set("orderTemp", string(updatedJSON))
-
-	// IMPORTANTE: Guardar la sesión
-	if err := sess.Save(); err != nil {
-		log.Printf("AddItemToTempOrder - Error guardando sesión: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al guardar sesión")
-	}
-
-	log.Printf("AddItemToTempOrder - Item añadido a orden temporal, ahora tiene %d productos",
-		len(orderTemp.Items))
+	// Actualizar total en la orden
+	order.Total = total
+	db.Save(&order)
 
 	// Notificar éxito
 	c.Set("HX-Trigger", `{"showToast": "Producto añadido"}`)
 
 	// Devolver HTML actualizado
 	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     orderTemp.Items,
-		"Total":     orderTemp.Total,
-		"ItemCount": len(orderTemp.Items),
+		"Items":     allItems,
+		"Total":     total,
+		"ItemCount": len(allItems),
+		"OrderID":   orderID,
 	}, "")
 }
 
-// RemoveItemFromTempOrder elimina un producto de la orden temporal
+// Reemplazar la función RemoveItemFromTempOrder
 func RemoveItemFromTempOrder(c *fiber.Ctx) error {
-	// Obtener sesión
-	sess, err := sessionStore.Get(c)
+	// Obtener el ID del ítem a eliminar
+	itemIndex := c.Params("index")
+	if itemIndex == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Índice de ítem no especificado")
+	}
+
+	// Obtener el ID de la orden solamente desde query params
+	orderIDStr := c.Query("order_id")
+	if orderIDStr == "" {
+		log.Printf("RemoveItemFromTempOrder: No se encontró order_id. URL: %s", c.OriginalURL())
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden no especificado")
+	}
+
+	log.Printf("RemoveItemFromTempOrder: item %s, order_id (query) %s", itemIndex, orderIDStr)
+
+	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener sesión")
+		log.Printf("Error convirtiendo order_id '%s': %v", orderIDStr, err)
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	// Obtener orden temporal
-	orderTempJSON := sess.Get("orderTemp")
-	if orderTempJSON == nil {
-		return c.Status(fiber.StatusBadRequest).SendString("No hay orden temporal en curso")
+	// Verificar que la orden exista
+	var order Order
+	if result := db.First(&order, orderID).Error; result != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	var orderTemp OrderTemp
-	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer orden temporal")
+	// Obtener todos los ítems de la orden
+	var items []OrderItem
+	if err := db.Where("order_id = ?", orderID).Find(&items).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al buscar ítems")
 	}
 
-	// Índice del item a eliminar
-	itemIndex, err := strconv.Atoi(c.Params("index"))
-	if err != nil || itemIndex < 0 || itemIndex >= len(orderTemp.Items) {
-		return c.Status(fiber.StatusBadRequest).SendString("Índice de producto inválido")
+	itemIdx, err := strconv.Atoi(itemIndex)
+	if err != nil || itemIdx < 0 || itemIdx >= len(items) {
+		return c.Status(fiber.StatusBadRequest).SendString("Índice de ítem inválido")
 	}
 
-	// Eliminar item
-	removedItem := orderTemp.Items[itemIndex]
-	orderTemp.Items = append(orderTemp.Items[:itemIndex], orderTemp.Items[itemIndex+1:]...)
+	// Eliminar el ítem
+	if err := db.Delete(&items[itemIdx]).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al eliminar ítem")
+	}
 
 	// Recalcular total
+	var allRemainingItems []OrderItem
+	db.Where("order_id = ?", orderID).Preload("Product").Find(&allRemainingItems)
+
 	total := 0.0
-	for _, item := range orderTemp.Items {
-		total += item.Subtotal
-	}
-	orderTemp.Total = total
-
-	// Guardar orden actualizada en sesión
-	updatedJSON, _ := json.Marshal(orderTemp)
-	sess.Set("orderTemp", string(updatedJSON))
-	if err := sess.Save(); err != nil {
-		log.Printf("Error al guardar sesión: %v", err)
+	for _, item := range allRemainingItems {
+		total += item.Product.Price * float64(item.Quantity)
 	}
 
-	// Notificar que se eliminó un producto
-	c.Set("HX-Trigger", fmt.Sprintf(`{"showToast": "%s eliminado de la orden"}`, removedItem.ProductName))
+	// Actualizar total de la orden
+	db.Model(&Order{}).Where("id = ?", orderID).Update("total", total)
+
+	// Notificar éxito
+	c.Set("HX-Trigger", `{"showToast": "Producto eliminado de la orden"}`)
 
 	// Devolver HTML actualizado
 	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     orderTemp.Items,
-		"Total":     orderTemp.Total,
-		"ItemCount": len(orderTemp.Items),
+		"Items":     allRemainingItems,
+		"Total":     total,
+		"ItemCount": len(allRemainingItems),
+		"OrderID":   orderID,
 	}, "")
 }
 
-// UpdateTempOrderItemQuantity actualiza la cantidad de un item
+// Reemplazar la función UpdateTempOrderItemQuantity
 func UpdateTempOrderItemQuantity(c *fiber.Ctx) error {
-	// Obtener sesión
-	sess, err := sessionStore.Get(c)
+	// Obtener parámetros
+	itemIndex := c.Params("index")
+	action := c.Params("action") // "increase" o "decrease"
+
+	// Obtener el ID de la orden solamente desde query params
+	orderIDStr := c.Query("order_id")
+	if orderIDStr == "" {
+		log.Printf("UpdateTempOrderItemQuantity: No se encontró order_id. URL: %s", c.OriginalURL())
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden no especificado")
+	}
+
+	log.Printf("UpdateTempOrderItemQuantity: item %s, action %s, order_id (query) %s",
+		itemIndex, action, orderIDStr)
+
+	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener sesión")
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	// Obtener orden temporal
-	orderTempJSON := sess.Get("orderTemp")
-	if orderTempJSON == nil {
-		return c.Status(fiber.StatusBadRequest).SendString("No hay orden temporal en curso")
+	// Verificar que la orden exista
+	var order Order
+	if result := db.First(&order, orderID).Error; result != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	var orderTemp OrderTemp
-	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer orden temporal")
+	// Obtener todos los ítems de la orden
+	var items []OrderItem
+	if err := db.Where("order_id = ?", orderID).Find(&items).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al buscar ítems")
 	}
 
-	// Índice del item y acción
-	itemIndex, err := strconv.Atoi(c.Params("index"))
-	if err != nil || itemIndex < 0 || itemIndex >= len(orderTemp.Items) {
-		return c.Status(fiber.StatusBadRequest).SendString("Índice de producto inválido")
+	itemIdx, err := strconv.Atoi(itemIndex)
+	if err != nil || itemIdx < 0 || itemIdx >= len(items) {
+		return c.Status(fiber.StatusBadRequest).SendString("Índice de ítem inválido")
 	}
 
-	action := c.Params("action")
-	if action != "increase" && action != "decrease" {
-		return c.Status(fiber.StatusBadRequest).SendString("Acción inválida")
-	}
-
-	// Modificar cantidad
+	// Actualizar la cantidad según la acción
 	if action == "increase" {
-		orderTemp.Items[itemIndex].Quantity++
-	} else {
-		if orderTemp.Items[itemIndex].Quantity > 1 {
-			orderTemp.Items[itemIndex].Quantity--
+		items[itemIdx].Quantity++
+	} else if action == "decrease" {
+		if items[itemIdx].Quantity > 1 {
+			items[itemIdx].Quantity--
+		} else {
+			// Si la cantidad llega a 0, eliminar el ítem
+			if err := db.Delete(&items[itemIdx]).Error; err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("Error al eliminar ítem")
+			}
+
+			// Obtener los ítems restantes
+			var remainingItems []OrderItem
+			db.Where("order_id = ?", orderID).Preload("Product").Find(&remainingItems)
+
+			// Recalcular total
+			total := 0.0
+			for _, item := range remainingItems {
+				total += item.Product.Price * float64(item.Quantity)
+			}
+
+			// Actualizar total de la orden
+			db.Model(&Order{}).Where("id = ?", orderID).Update("total", total)
+
+			// Devolver HTML actualizado
+			return c.Render("partials/temp_order_preview", fiber.Map{
+				"Items":     remainingItems,
+				"Total":     total,
+				"ItemCount": len(remainingItems),
+				"OrderID":   orderID,
+			}, "")
 		}
 	}
 
-	// Actualizar subtotal
-	orderTemp.Items[itemIndex].Subtotal = orderTemp.Items[itemIndex].Price * float64(orderTemp.Items[itemIndex].Quantity)
+	// Guardar cambio de cantidad
+	if err := db.Save(&items[itemIdx]).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al actualizar cantidad")
+	}
 
 	// Recalcular total
-	total := 0.0
-	for _, item := range orderTemp.Items {
-		total += item.Subtotal
-	}
-	orderTemp.Total = total
+	var updatedItems []OrderItem
+	db.Where("order_id = ?", orderID).Preload("Product").Find(&updatedItems)
 
-	// Guardar orden actualizada en sesión
-	updatedJSON, _ := json.Marshal(orderTemp)
-	sess.Set("orderTemp", string(updatedJSON))
-	if err := sess.Save(); err != nil {
-		log.Printf("Error al guardar sesión: %v", err)
+	total := 0.0
+	for _, item := range updatedItems {
+		total += item.Product.Price * float64(item.Quantity)
 	}
+
+	// Actualizar total de la orden
+	db.Model(&Order{}).Where("id = ?", orderID).Update("total", total)
+
+	// Notificar éxito
+	c.Set("HX-Trigger", `{"showToast": "Cantidad actualizada"}`)
 
 	// Devolver HTML actualizado
 	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     orderTemp.Items,
-		"Total":     orderTemp.Total,
-		"ItemCount": len(orderTemp.Items),
+		"Items":     updatedItems,
+		"Total":     total,
+		"ItemCount": len(updatedItems),
+		"OrderID":   orderID,
 	}, "")
 }
 
-// ClearTempOrder elimina todos los productos de la orden temporal
+// Simplificar la función ClearTempOrder para usar solo query parameters
 func ClearTempOrder(c *fiber.Ctx) error {
-	// Obtener sesión
-	sess, err := sessionStore.Get(c)
+	// Obtener el ID de la orden solamente desde query params para solicitudes DELETE
+	orderIDStr := c.Query("order_id")
+	if orderIDStr == "" {
+		log.Printf("ClearTempOrder: No se encontró order_id en QueryParams. URL: %s", c.OriginalURL())
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden no especificado")
+	}
+
+	log.Printf("ClearTempOrder recibido con order_id (query): %s", orderIDStr)
+
+	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener sesión")
+		log.Printf("Error convirtiendo order_id '%s' a entero: %v", orderIDStr, err)
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	// Obtener orden temporal para conservar el número de mesa
-	orderTempJSON := sess.Get("orderTemp")
-	if orderTempJSON == nil {
-		return c.Status(fiber.StatusBadRequest).SendString("No hay orden temporal en curso")
+	// Verificar que la orden exista
+	var order Order
+	if result := db.First(&order, orderID).Error; result != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
-	var orderTemp OrderTemp
-	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer orden temporal")
+	// Eliminar todos los ítems de la orden
+	if err := db.Where("order_id = ?", orderID).Delete(&OrderItem{}).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al eliminar ítems")
 	}
 
-	tableNum := orderTemp.TableNum
-
-	// Crear nueva orden temporal vacía
-	orderTemp = OrderTemp{
-		TableNum: tableNum,
-		Items:    make([]OrderItemTemp, 0),
-		Total:    0,
-	}
-
-	// Guardar orden actualizada en sesión
-	updatedJSON, _ := json.Marshal(orderTemp)
-	sess.Set("orderTemp", string(updatedJSON))
-	if err := sess.Save(); err != nil {
-		log.Printf("Error al guardar sesión: %v", err)
-	}
+	// Actualizar total de la orden a cero
+	db.Model(&Order{}).Where("id = ?", orderID).Update("total", 0)
 
 	// Notificar limpieza
 	c.Set("HX-Trigger", `{"showToast": "Orden limpiada"}`)
 
 	// Devolver HTML actualizado
 	return c.Render("partials/temp_order_preview", fiber.Map{
-		"Items":     []OrderItemTemp{},
+		"Items":     []OrderItem{},
 		"Total":     0.0,
 		"ItemCount": 0,
+		"OrderID":   orderID,
 	}, "")
 }
 
-// ConfirmTempOrder crea una orden real a partir de la temporal
 func ConfirmTempOrder(c *fiber.Ctx) error {
-	// Obtener sesión
-	sess, err := sessionStore.Get(c)
+	// Obtener ID de orden directamente del formulario
+	orderIDStr := c.FormValue("order_id")
+	if orderIDStr == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("No se especificó el ID de orden")
+	}
+
+	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener sesión")
+		return c.Status(fiber.StatusBadRequest).SendString("ID de orden inválido")
 	}
 
-	// Obtener orden temporal
-	orderTempJSON := sess.Get("orderTemp")
-	if orderTempJSON == nil {
-		return c.Status(fiber.StatusBadRequest).SendString("No hay orden temporal en curso")
-	}
-
-	var orderTemp OrderTemp
-	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Error al leer orden temporal",
-		})
+	// Obtener la orden
+	var order Order
+	if result := db.Preload("Items").First(&order, orderID).Error; result != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
 	// Validar que haya productos
-	if len(orderTemp.Items) == 0 {
+	if len(order.Items) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "La orden debe tener al menos un producto",
@@ -852,98 +883,25 @@ func ConfirmTempOrder(c *fiber.Ctx) error {
 
 	// Notas adicionales
 	notes := c.FormValue("notes")
-
-	// Verificar que la mesa exista y no esté ocupada
-	var table Table
-	result := db.Where("number = ?", orderTemp.TableNum).First(&table)
-	if result.Error != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "Mesa no encontrada",
-		})
+	if notes != "" {
+		order.Notes = notes
 	}
 
-	if table.Occupied {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Esta mesa ya está ocupada",
-		})
-	}
+	// Cambiar estado de la orden a pending
+	order.Status = "pending"
 
-	// Crear la orden real
-	tx := db.Begin()
-
-	order := Order{
-		TableNum:  orderTemp.TableNum,
-		Status:    "pending",
-		Notes:     notes,
-		Total:     orderTemp.Total,
-		CreatedAt: time.Now(),
-	}
-
-	if err := tx.Create(&order).Error; err != nil {
-		tx.Rollback()
-		log.Printf("Error al crear orden: %v", err)
+	// Actualizar la orden
+	if err := db.Save(&order).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
-			"message": "Error al crear la orden",
+			"message": "Error al confirmar la orden",
 		})
 	}
 
-	// Crear los items
-	for _, tempItem := range orderTemp.Items {
-		orderItem := OrderItem{
-			OrderID:   order.ID,
-			ProductID: tempItem.ProductID,
-			Quantity:  tempItem.Quantity,
-			Notes:     tempItem.Notes,
-			IsReady:   false,
-		}
-
-		if err := tx.Create(&orderItem).Error; err != nil {
-			tx.Rollback()
-			log.Printf("Error al crear item: %v", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"success": false,
-				"message": "Error al crear los productos de la orden",
-			})
-		}
-	}
-
-	// Marcar la mesa como ocupada
-	table.Occupied = true
-	table.OrderID = &order.ID
-	if err := tx.Save(&table).Error; err != nil {
-		tx.Rollback()
-		log.Printf("Error al marcar mesa como ocupada: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Error al marcar la mesa como ocupada",
-		})
-	}
-
-	// Confirmar transacción
-	tx.Commit()
-
-	// Limpiar sesión
-	sess.Delete("orderTemp")
-	if err := sess.Save(); err != nil {
-		log.Printf("Error al limpiar sesión: %v", err)
-	}
-
-	// Si es una solicitud HTMX, enviar header de redirección para HTMX
-	if c.Get("HX-Request") == "true" {
-		c.Set("HX-Redirect", "/order/"+strconv.Itoa(int(order.ID)))
-		c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(int(order.ID))+` creada correctamente"}`)
-		return c.SendString("Redirigiendo...")
-	}
-
-	// Responder con el ID de la orden creada
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"message": "Orden creada correctamente",
-		"orderId": order.ID,
-	})
+	// Notificar éxito y redireccionar
+	c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(int(order.ID))+` confirmada correctamente"}`)
+	c.Set("HX-Redirect", "/orders")
+	return c.SendString("Orden confirmada correctamente. Redirigiendo...")
 }
 
 // GetTempOrderSummary obtiene el resumen de la orden temporal para el modal de confirmación
@@ -971,4 +929,37 @@ func GetTempOrderSummary(c *fiber.Ctx) error {
 		"Total":    orderTemp.Total,
 		"TableNum": orderTemp.TableNum,
 	}, "")
+}
+
+// Añade esta función de diagnóstico
+func DebugSession(c *fiber.Ctx) error {
+	sess, err := sessionStore.Get(c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error obteniendo sesión: " + err.Error(),
+		})
+	}
+
+	orderTempJSON := sess.Get("orderTemp")
+	if orderTempJSON == nil {
+		return c.JSON(fiber.Map{
+			"status":    "No hay orden temporal en la sesión",
+			"sessionID": sess.ID(),
+		})
+	}
+
+	var orderTemp OrderTemp
+	if err := json.Unmarshal([]byte(orderTempJSON.(string)), &orderTemp); err != nil {
+		return c.JSON(fiber.Map{
+			"error":     "Error deserializando orden: " + err.Error(),
+			"sessionID": sess.ID(),
+			"raw":       orderTempJSON,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":    "Orden temporal encontrada",
+		"sessionID": sess.ID(),
+		"orderTemp": orderTemp,
+	})
 }

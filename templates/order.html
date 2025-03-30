@@ -60,12 +60,11 @@
                                         <div class="category small text-muted mb-2">{{.Category}}</div>
                                         <div class="mt-auto action-buttons">
                                             <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-primary quick-add-btn" 
-        hx-post="/order/temp/item?table={{.TableNum}}"
-        hx-vals='{"product_id": "{{.ID}}", "quantity": 1, "notes": ""}'
-        hx-target="#order-preview">
-    <i class="bi bi-plus-circle me-1"></i> Añadir
-</button>
+                                                <button class="btn btn-sm btn-primary" hx-post="/order/temp/item"
+                                                    hx-vals='{"product_id": "{{.ID}}", "quantity": 1, "notes": "", "order_id": "{{$.OrderID}}"}'
+                                                    hx-target="#order-preview">
+                                                    <i class="bi bi-plus-circle me-1"></i> Añadir
+                                                </button>
                                                 <button class="btn btn-sm btn-outline-secondary" data-id="{{.ID}}"
                                                     data-name="{{.Name}}" data-price="{{.Price}}"
                                                     onclick="openProductModal(this)">
@@ -93,10 +92,9 @@
                                         <div class="category small text-muted mb-2">{{.Category}}</div>
                                         <div class="mt-auto action-buttons">
                                             <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-primary quick-add-btn"
-                                                    hx-post="/order/temp/item"
-                                                    hx-vals='{"product_id": "{{.ID}}", "quantity": "1", "notes": ""}'
-                                                    hx-target="#order-preview" hx-swap="innerHTML">
+                                                <button class="btn btn-sm btn-primary" hx-post="/order/temp/item"
+                                                    hx-vals='{"product_id": "{{.ID}}", "quantity": 1, "notes": "", "order_id": "{{$.OrderID}}"}'
+                                                    hx-target="#order-preview">
                                                     <i class="bi bi-plus-circle me-1"></i> Añadir
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-secondary" data-id="{{.ID}}"
@@ -123,8 +121,10 @@
         <div class="macos-card sticky-top" style="top: 70px;">
             <div class="card-header bg-transparent p-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Orden en curso</h5>
-                <button id="clearOrderBtn" class="btn btn-sm btn-outline-danger" hx-delete="/order/temp"
-                    hx-target="#order-preview" {{if eq .ItemCount 0}}style="display:none;" {{end}}>
+                <!-- Sólo la parte del botón limpiar, no todo el archivo -->
+                <button id="clearOrderBtn" class="btn btn-sm btn-outline-danger"
+                    hx-delete="/order/temp?order_id={{.OrderID}}" hx-target="#order-preview" {{if eq .ItemCount
+                    0}}style="display:none;" {{end}}>
                     <i class="bi bi-trash"></i> Limpiar
                 </button>
             </div>
@@ -150,6 +150,7 @@
             <div class="modal-body">
                 <form id="add-product-form" hx-post="/order/temp/item" hx-target="#order-preview">
                     <input type="hidden" id="modal-product-id" name="product_id">
+                    <input type="hidden" name="order_id" value="{{.OrderID}}">
                     <div class="mb-3">
                         <label class="form-label">Cantidad</label>
                         <div class="input-group">
@@ -186,7 +187,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Confirmar Orden</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn btn-primary" hx-post="/order/temp/confirm" hx-include="#order-notes"
+                    hx-vals='{"order_id": "{{.OrderID}}"}' hx-swap="none">
+                    Confirmar Orden
+                </button>
             </div>
             <div class="modal-body" id="confirmOrderModalBody">
                 <!-- Aquí se cargará el resumen de la orden -->
@@ -194,10 +198,12 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" hx-post="/order/temp/confirm" hx-include="#order-notes"
-                    hx-swap="none">
+                    hx-vals='{"order_id": "{{.OrderID}}"}' hx-swap="none">
                     Confirmar Orden
                 </button>
             </div>
         </div>
     </div>
 </div>
+
+<input type="hidden" id="currentOrderID" value="{{.OrderID}}">

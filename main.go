@@ -189,7 +189,7 @@ func main() {
 
 	// Rutas del Dashboard
 	app.Get("/", DashboardHandler)
-
+	app.Get("/debug/session", DebugSession)
 	// Rutas de Productos
 	app.Get("/products", GetProducts)
 	app.Get("/products/category/:category", GetProductsByCategory)
@@ -218,8 +218,7 @@ func main() {
 	app.Post("/order/:id/email", EmailOrder)
 	app.Post("/order/:id/duplicate", DuplicateOrder)
 
-	// Rutas para orden temporal - AÑADE ESTAS RUTAS SI NO EXISTEN
-	app.Get("/new-order/table/:tableNum", GetNewOrderPage)
+	// En la sección de rutas para órdenes temporales:
 	app.Post("/order/temp/item", AddItemToTempOrder)
 	app.Delete("/order/temp/item/:index", RemoveItemFromTempOrder)
 	app.Put("/order/temp/item/:index/quantity/:action", UpdateTempOrderItemQuantity)
