@@ -129,6 +129,9 @@ func main() {
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		"subtract": func(a, b int) int { // Añadimos la función "subtract"
+			return a - b
+		},
 		"mul": func(a float64, b int) float64 {
 			return a * float64(b)
 		},
@@ -140,6 +143,12 @@ func main() {
 		},
 		"multiply": func(a float64, b int) float64 {
 			return a * float64(b)
+		},
+		"truncate": func(s string, length int) string {
+			if len(s) <= length {
+				return s
+			}
+			return s[:length] + "..."
 		},
 	})
 

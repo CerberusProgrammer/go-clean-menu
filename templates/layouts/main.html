@@ -215,6 +215,376 @@
         body.dark-mode .text-muted {
             color: #aeaeb2 !important;
         }
+
+        .product-card {
+            transition: all 0.2s ease-in-out;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+            padding: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        .product-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 160px;
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: var(--text-color);
+        }
+
+        .product-card .description {
+            height: 40px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            margin-bottom: 10px;
+        }
+
+        .product-card .price {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+        }
+
+        .product-card .action-buttons {
+            margin-top: 10px;
+        }
+
+        /* Search and filter styles */
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-container .input-group {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .search-container .input-group-text {
+            background-color: transparent;
+            border-right: none;
+        }
+
+        .search-container input.form-control {
+            border-left: none;
+            padding-left: 0;
+        }
+
+        /* Category tabs styling */
+        .macos-card .card-header {
+            padding: 15px 20px;
+            border-bottom: none;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 10px 20px;
+            color: var(--secondary-text);
+            transition: all 0.3s;
+            font-weight: 500;
+            margin-right: 5px;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-color);
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--accent-color);
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-color);
+            background: transparent;
+        }
+
+        /* Order items table */
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table> :not(caption)>*>* {
+            padding: 0.8rem 1.2rem;
+        }
+
+        .table>thead {
+            background-color: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table>thead th {
+            font-weight: 600;
+            color: var(--text-color);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        .table tfoot {
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+
+        /* Badge styling */
+        .badge {
+            padding: 6px 12px;
+            font-weight: 500;
+            border-radius: 20px;
+        }
+
+        /* Card and button styling */
+        .macos-card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .macos-card .card-body {
+            padding: 20px;
+        }
+
+        .macos-btn {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 8px 16px;
+            transition: all 0.2s;
+        }
+
+        .macos-btn-primary {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .macos-btn-primary:hover {
+            background: var(--accent-color-dark);
+            border-color: var(--accent-color-dark);
+            transform: translateY(-1px);
+        }
+
+        /* Product grid layout */
+        .row-cols-2>.col,
+        .row-cols-md-3>.col {
+            padding: 10px;
+        }
+
+        /* Animation for order items */
+        @keyframes itemHighlight {
+            0% {
+                background-color: rgba(var(--bs-primary-rgb), 0.1);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .new-item {
+            animation: itemHighlight 2s ease;
+        }
+
+        /* Order notes styling */
+        .order-notes {
+            background-color: rgba(0, 0, 0, 0.01);
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        #order-notes-view {
+            background-color: rgba(255, 255, 255, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Quantity controls */
+        .quantity-btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Modals */
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 18px 24px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 16px 24px;
+        }
+
+        /* Toast notifications */
+        .toast {
+            background-color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 10px;
+        }
+
+        .toast-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background-color: transparent;
+        }
+
+        /* Status badges */
+        .badge.bg-info {
+            background-color: #0ea5e9 !important;
+            color: white;
+        }
+
+        .badge.bg-success {
+            background-color: #10b981 !important;
+        }
+
+        .badge.bg-secondary {
+            background-color: #6b7280 !important;
+        }
+
+        .badge.bg-danger {
+            background-color: #ef4444 !important;
+        }
+
+        .badge.bg-warning {
+            background-color: #f59e0b !important;
+        }
+
+        /* Indicators */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+
+        /* Table for listing categories */
+        .list-group-item {
+            border-color: var(--border-color);
+            padding: 12px 20px;
+            transition: all 0.2s;
+        }
+
+        .list-group-item:hover {
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+
+        .list-group-item.active,
+        .list-group-item.active:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .list-group-item a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* Form controls */
+        .form-control,
+        .form-select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.2);
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+
+        /* Mejoras para responsive */
+        @media (max-width: 768px) {
+            .product-item {
+                flex: 0 0 50%;
+            }
+
+            .product-name {
+                max-width: 120px;
+            }
+
+            .macos-card .card-body {
+                padding: 15px;
+            }
+
+            .table> :not(caption)>*>* {
+                padding: 0.7rem 0.8rem;
+            }
+        }
+
+        /* Dark mode adjustments */
+        body.dark-mode .product-card {
+            background-color: rgba(30, 30, 30, 0.7);
+            border-color: rgba(60, 60, 60, 0.8);
+        }
+
+        body.dark-mode .nav-tabs .nav-link.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        body.dark-mode .table>thead {
+            background-color: rgba(40, 40, 40, 0.5);
+        }
+
+        body.dark-mode .table tfoot {
+            background-color: rgba(40, 40, 40, 0.3);
+        }
+
+        body.dark-mode #order-notes-view {
+            background-color: rgba(40, 40, 40, 0.5);
+        }
+
+        body.dark-mode .list-group-item {
+            background-color: rgba(30, 30, 30, 0.7);
+            border-color: rgba(60, 60, 60, 0.8);
+        }
     </style>
 </head>
 
@@ -245,31 +615,31 @@
             <div class="col-md-3">
                 <div class="sidebar">
                     <ul class="sidebar-menu">
-                        <li><a href="/" class="{{if eq .ActivePage "dashboard"}}active{{end}}">
-                            <i class="bi bi-speedometer2"></i> Panel
-                        </a></li>
-                    <li><a href="/orders" class="{{if eq .ActivePage "orders"}}active{{end}}">
-                            <i class="bi bi-receipt"></i> Órdenes
-                        </a></li>
-                    <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">
-                            <i class="bi bi-journal-text"></i> Menú
-                        </a></li>
+                        <li><a href="/" class="{{if eq .ActivePage " dashboard"}}active{{end}}">
+                                <i class="bi bi-speedometer2"></i> Panel
+                            </a></li>
+                        <li><a href="/orders" class="{{if eq .ActivePage " orders"}}active{{end}}">
+                                <i class="bi bi-receipt"></i> Órdenes
+                            </a></li>
+                        <li><a href="/menu" class="{{if eq .ActivePage " menu"}}active{{end}}">
+                                <i class="bi bi-journal-text"></i> Menú
+                            </a></li>
                     </ul>
 
                     <div class="sidebar-heading">Administración</div>
                     <ul class="sidebar-menu">
-                        <li><a href="/kitchen" class="{{if eq .ActivePage "kitchen"}}active{{end}}">
-                            <i class="bi bi-fire"></i> Cocina
-                        </a></li>
-                    <li><a href="/tables" class="{{if eq .ActivePage "tables"}}active{{end}}">
-                            <i class="bi bi-grid-3x3"></i> Mesas
-                        </a></li>
-                    <li><a href="/history" class="{{if eq .ActivePage "history"}}active{{end}}">
-                            <i class="bi bi-clock-history"></i> Historial
-                        </a></li>
-                    <li><a href="/settings" class="{{if eq .ActivePage "settings"}}active{{end}}">
-                            <i class="bi bi-gear"></i> Configuración
-                        </a></li>
+                        <li><a href="/kitchen" class="{{if eq .ActivePage " kitchen"}}active{{end}}">
+                                <i class="bi bi-fire"></i> Cocina
+                            </a></li>
+                        <li><a href="/tables" class="{{if eq .ActivePage " tables"}}active{{end}}">
+                                <i class="bi bi-grid-3x3"></i> Mesas
+                            </a></li>
+                        <li><a href="/history" class="{{if eq .ActivePage " history"}}active{{end}}">
+                                <i class="bi bi-clock-history"></i> Historial
+                            </a></li>
+                        <li><a href="/settings" class="{{if eq .ActivePage " settings"}}active{{end}}">
+                                <i class="bi bi-gear"></i> Configuración
+                            </a></li>
                     </ul>
 
                     <div class="mt-5 p-3 macos-card">

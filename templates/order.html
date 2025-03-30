@@ -6,23 +6,26 @@
         <button class="btn macos-btn btn-outline-secondary me-2" hx-get="/orders" hx-target="body" hx-push-url="true">
             <i class="bi bi-arrow-left me-2"></i>Regresar
         </button>
-        
-        <button class="btn macos-btn btn-outline-danger me-2" hx-post="/order/{{.OrderID}}/cancel" 
-            hx-swap="none" hx-confirm="¿Está seguro de cancelar esta orden?">
+
+        <button class="btn macos-btn btn-outline-danger me-2" hx-post="/order/{{.OrderID}}/cancel" hx-swap="none"
+            hx-confirm="¿Está seguro de cancelar esta orden?" hx-indicator="#cancel-indicator">
+            <span id="cancel-indicator" class="htmx-indicator me-2">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
             <i class="bi bi-x-circle me-2"></i>Cancelar Orden
         </button>
 
         {{if eq .Order.Status "pending"}}
-        <button class="btn macos-btn btn-primary" hx-post="/order/{{.OrderID}}/process" 
-            hx-swap="none" hx-confirm="¿Enviar este pedido a cocina?" hx-indicator="#process-indicator">
+        <button class="btn macos-btn btn-primary" hx-post="/order/{{.OrderID}}/process" hx-swap="none"
+            hx-confirm="¿Enviar este pedido a cocina?" hx-indicator="#process-indicator">
             <span id="process-indicator" class="htmx-indicator me-2">
                 <span class="spinner-border spinner-border-sm" role="status"></span>
             </span>
             <i class="bi bi-arrow-right-circle me-2"></i>Completar Pedido
         </button>
         {{else}}
-        <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.OrderID}}/complete" 
-            hx-swap="none" hx-confirm="¿Está seguro de completar esta orden?" hx-indicator="#complete-indicator">
+        <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.OrderID}}/complete" hx-swap="none"
+            hx-confirm="¿Está seguro de completar esta orden?" hx-indicator="#complete-indicator">
             <span id="complete-indicator" class="htmx-indicator me-2">
                 <span class="spinner-border spinner-border-sm" role="status"></span>
             </span>
@@ -32,11 +35,61 @@
     </div>
 </div>
 
+<!-- Información de la orden -->
+<div class="macos-card mb-4 p-3">
+    <div class="order-status-bar mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="me-3 fw-bold">Estado:</span>
+                {{if eq .Order.Status "pending"}}
+                <span class="badge bg-warning text-dark">Pendiente</span>
+                {{else if eq .Order.Status "in_progress"}}
+                <span class="badge bg-info">En Preparación</span>
+                {{else}}
+                <span class="badge bg-success">Completada</span>
+                {{end}}
+            </div>
+            <div>
+                <span class="text-muted">Creada: {{formatDate .Order.CreatedAt}}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notas de la orden -->
+    <div class="order-notes">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label m-0">Notas de la orden:</label>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleOrderNotes()">
+                <i class="bi bi-pencil"></i> Editar
+            </button>
+        </div>
+
+        <!-- Vista de notas -->
+        <div id="order-notes-view" class="p-2 bg-light rounded">
+            {{if .Order.Notes}}
+            <p class="m-0">{{.Order.Notes}}</p>
+            {{else}}
+            <p class="text-muted m-0">Sin notas</p>
+            {{end}}
+        </div>
+
+        <!-- Formulario para editar notas -->
+        <form id="order-notes-form" hx-put="/order/{{.OrderID}}/notes" hx-swap="none" class="d-none">
+            <div class="input-group mb-2">
+                <textarea class="form-control" name="notes" rows="2">{{.Order.Notes}}</textarea>
+                <button class="btn btn-outline-primary" type="submit">Guardar</button>
+                <button class="btn btn-outline-secondary" type="button" onclick="toggleOrderNotes()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Sección de items de la orden -->
 <div id="order-items">
     <div class="macos-card mb-4">
-        <div class="card-header bg-transparent border-0">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Ítems de la orden</h5>
+            <span class="badge bg-primary rounded-pill">{{len .Order.Items}} ítems</span>
         </div>
         <div class="table-responsive">
             <table class="table mb-0">
@@ -58,7 +111,20 @@
                             {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
                         </td>
                         <td>${{printf "%.2f" .Product.Price}}</td>
-                        <td>{{.Quantity}}</td>
+                        <td>
+                            <div class="quantity-control d-flex align-items-center">
+                                <button class="btn btn-sm btn-outline-secondary" hx-put="/order/item/{{.ID}}"
+                                    hx-target="#order-items" hx-vals='{"quantity": {{subtract .Quantity 1}}}' {{if le
+                                    .Quantity 1}}disabled{{end}}>
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <span class="mx-2">{{.Quantity}}</span>
+                                <button class="btn btn-sm btn-outline-secondary" hx-put="/order/item/{{.ID}}"
+                                    hx-target="#order-items" hx-vals='{"quantity": {{add .Quantity 1}}}'>
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                        </td>
                         <td>${{printf "%.2f" (multiply .Product.Price .Quantity)}}</td>
                         <td>
                             {{if .IsReady}}
@@ -76,14 +142,20 @@
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="6" class="text-center py-4">No hay productos en esta orden</td>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="p-3">
+                                <i class="bi bi-cart-x fs-1 text-muted"></i>
+                                <p class="mt-2 mb-0 text-muted">No hay productos en esta orden</p>
+                                <p class="text-muted small">Agregue productos desde las opciones de abajo</p>
+                            </div>
+                        </td>
                     </tr>
                     {{end}}
                 </tbody>
                 <tfoot class="table-group-divider">
                     <tr>
                         <th colspan="3" class="text-end">Total:</th>
-                        <th>${{printf "%.2f" .Order.Total}}</th>
+                        <th class="text-primary fs-5">${{printf "%.2f" .Order.Total}}</th>
                         <th colspan="2"></th>
                     </tr>
                 </tfoot>
@@ -108,8 +180,11 @@
         </ul>
     </div>
     <div class="card-body">
-        <div class="mb-3">
-            <input type="text" class="form-control" id="product-search" placeholder="Buscar productos...">
+        <div class="mb-3 search-container">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="product-search" placeholder="Buscar productos...">
+            </div>
         </div>
         <div class="tab-content" id="productTabsContent">
             <!-- Pestaña de todos los productos -->
@@ -117,18 +192,24 @@
                 <div class="row row-cols-2 row-cols-md-3 g-3">
                     {{range .AllProducts}}
                     <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
-                        <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}" data-price="{{.Price}}">
+                        <div class="product-card p-2 h-100" data-id="{{.ID}}" data-name="{{.Name}}"
+                            data-price="{{.Price}}">
                             <div class="d-flex flex-column h-100">
-                                <h6>{{.Name}}</h6>
-                                <div class="price mb-2">${{printf "%.2f" .Price}}</div>
-                                <div class="category small text-muted mb-2">{{.Category}}</div>
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1 product-name">{{.Name}}</h6>
+                                    <span class="badge rounded-pill {{if eq .Category " Bebidas"}}bg-info{{else if eq
+                                        .Category "Pizzas" }}bg-warning text-dark{{else if eq .Category "Hamburguesas"
+                                        }}bg-danger{{else}}bg-secondary{{end}} mb-1">{{.Category}}</span>
+                                </div>
+                                <div class="price mb-2 text-primary fw-bold">${{printf "%.2f" .Price}}</div>
+                                {{if .Description}}
+                                <div class="description small text-muted mb-2">{{truncate .Description 50}}</div>
+                                {{end}}
                                 <div class="mt-auto action-buttons">
-                                    <div class="d-flex justify-content-between">
-                                        <button class="btn btn-sm btn-primary w-100"
-                                            onclick="openProductModal(this.parentNode.parentNode.parentNode.parentNode)">
-                                            <i class="bi bi-plus-circle me-1"></i>Añadir
-                                        </button>
-                                    </div>
+                                    <button class="btn btn-sm btn-primary w-100"
+                                        onclick="openProductModal(this.parentNode.parentNode.parentNode)">
+                                        <i class="bi bi-plus-circle me-1"></i>Añadir
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -143,18 +224,24 @@
                 <div class="row row-cols-2 row-cols-md-3 g-3">
                     {{range index $.ProductsByCategory $category}}
                     <div class="col product-item" data-name="{{.Name}}" data-category="{{.Category}}">
-                        <div class="product-card p-2" data-id="{{.ID}}" data-name="{{.Name}}" data-price="{{.Price}}">
+                        <div class="product-card p-2 h-100" data-id="{{.ID}}" data-name="{{.Name}}"
+                            data-price="{{.Price}}">
                             <div class="d-flex flex-column h-100">
-                                <h6>{{.Name}}</h6>
-                                <div class="price mb-2">${{printf "%.2f" .Price}}</div>
-                                <div class="category small text-muted mb-2">{{.Category}}</div>
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1 product-name">{{.Name}}</h6>
+                                    <span class="badge rounded-pill {{if eq .Category " Bebidas"}}bg-info{{else if eq
+                                        .Category "Pizzas" }}bg-warning text-dark{{else if eq .Category "Hamburguesas"
+                                        }}bg-danger{{else}}bg-secondary{{end}} mb-1">{{.Category}}</span>
+                                </div>
+                                <div class="price mb-2 text-primary fw-bold">${{printf "%.2f" .Price}}</div>
+                                {{if .Description}}
+                                <div class="description small text-muted mb-2">{{truncate .Description 50}}</div>
+                                {{end}}
                                 <div class="mt-auto action-buttons">
-                                    <div class="d-flex justify-content-between">
-                                        <button class="btn btn-sm btn-primary w-100"
-                                            onclick="openProductModal(this.parentNode.parentNode.parentNode.parentNode)">
-                                            <i class="bi bi-plus-circle me-1"></i>Añadir
-                                        </button>
-                                    </div>
+                                    <button class="btn btn-sm btn-primary w-100"
+                                        onclick="openProductModal(this.parentNode.parentNode.parentNode)">
+                                        <i class="bi bi-plus-circle me-1"></i>Añadir
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -196,7 +283,9 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Agregar</button>
+                        <button type="submit" class="btn macos-btn macos-btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Agregar
+                        </button>
                     </div>
                 </form>
             </div>
@@ -215,6 +304,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
     // Filtro de búsqueda para productos
@@ -259,18 +349,40 @@
         input.value = Math.max(currentValue - 1, 1);
     }
 
+    // Función para mostrar/ocultar formulario de notas
+    function toggleOrderNotes() {
+        const view = document.getElementById('order-notes-view');
+        const form = document.getElementById('order-notes-form');
+
+        if (view.classList.contains('d-none')) {
+            view.classList.remove('d-none');
+            form.classList.add('d-none');
+        } else {
+            view.classList.add('d-none');
+            form.classList.remove('d-none');
+        }
+    }
+
     // Cerrar modal después de agregar producto
     document.body.addEventListener('htmx:afterOnLoad', function (evt) {
         if (evt.detail.target.id === 'order-items') {
             const modal = bootstrap.Modal.getInstance(document.getElementById('productOptionsModal'));
             if (modal) modal.hide();
-            showToast('Producto añadido a la orden');
+
+            // Resaltar temporalmente el último elemento agregado
+            const items = document.querySelectorAll('#order-items tbody tr');
+            if (items.length > 0) {
+                const lastItem = items[0];
+                lastItem.classList.add('new-item');
+                setTimeout(() => {
+                    lastItem.classList.remove('new-item');
+                }, 2000);
+            }
         }
     });
 
     // Mostrar toast con mensaje
     document.body.addEventListener('htmx:afterSettle', function (evt) {
-        // Check if there's a showToast event
         const eventDetail = evt.detail.xhr && evt.detail.xhr.getResponseHeader('HX-Trigger');
         if (eventDetail) {
             try {
@@ -294,27 +406,13 @@
         toast.show();
     }
 
-    // Inicializar tooltips de Bootstrap
-    document.addEventListener('DOMContentLoaded', function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
-    });
-
     // Manejar eventos de redirección
     document.body.addEventListener('htmx:beforeRequest', function (evt) {
-        if (evt.detail.elt.getAttribute('hx-post') === '/order/{{.OrderID}}/complete') {
-            console.log("Enviando solicitud para completar orden...");
-        }
-    });
-
-    document.body.addEventListener('htmx:afterRequest', function (evt) {
-        // Si la solicitud es para completar la orden y fue exitosa
-        if (evt.detail.elt.getAttribute('hx-post') === '/order/{{.OrderID}}/complete' &&
-            evt.detail.xhr.status === 200) {
-            console.log("Orden completada, redirigiendo...");
-            window.location.href = '/orders';
+        if (evt.detail.elt.getAttribute('hx-post') &&
+            (evt.detail.elt.getAttribute('hx-post').includes('/complete') ||
+                evt.detail.elt.getAttribute('hx-post').includes('/process') ||
+                evt.detail.elt.getAttribute('hx-post').includes('/cancel'))) {
+            console.log("Enviando solicitud...");
         }
     });
 
@@ -324,5 +422,13 @@
             console.log("Redirigiendo a:", redirectTo);
             window.location.href = redirectTo;
         }
+    });
+
+    // Inicializar tooltips de Bootstrap
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
     });
 </script>
