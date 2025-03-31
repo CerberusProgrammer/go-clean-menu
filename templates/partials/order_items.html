@@ -7,46 +7,48 @@
         <table class="table mb-0">
             <thead>
                 <tr>
+                    <th>#</th>
                     <th>Producto</th>
                     <th>Precio</th>
                     <th>Cant.</th>
                     <th>Subtotal</th>
                     <th>Estado</th>
-                    <th></th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {{range .Order.Items}}
-                <tr>
+                {{range $index, $item := .Order.Items}}
+                <tr id="item-{{$item.ID}}">
+                    <td>{{add $index 1}}</td>
                     <td>
-                        <strong>{{.Product.Name}}</strong>
-                        {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
+                        <strong>{{$item.Product.Name}}</strong>
+                        {{if $item.Notes}}<br><small class="text-muted">{{$item.Notes}}</small>{{end}}
                     </td>
-                    <td>${{printf "%.2f" .Product.Price}}</td>
+                    <td>${{printf "%.2f" $item.Product.Price}}</td>
                     <td>
                         <div class="quantity-control d-flex align-items-center">
-                            <button class="btn btn-sm btn-outline-secondary" hx-put="/order/item/{{.ID}}"
-                                hx-target="#order-items" hx-vals='{"quantity": {{subtract .Quantity 1}}}' {{if le
-                                .Quantity 1}}disabled{{end}}>
+                            <button class="btn btn-sm btn-outline-secondary" hx-put="/order/item/{{$item.ID}}"
+                                hx-target="#order-items" hx-vals='{"quantity": {{subtract $item.Quantity 1}}}' {{if le
+                                $item.Quantity 1}}disabled{{end}}>
                                 <i class="bi bi-dash"></i>
                             </button>
-                            <span class="mx-2">{{.Quantity}}</span>
-                            <button class="btn btn-sm btn-outline-secondary" hx-put="/order/item/{{.ID}}"
-                                hx-target="#order-items" hx-vals='{"quantity": {{add .Quantity 1}}}'>
+                            <span class="mx-2">{{$item.Quantity}}</span>
+                            <button class="btn btn-sm btn-outline-secondary" hx-put="/order/item/{{$item.ID}}"
+                                hx-target="#order-items" hx-vals='{"quantity": {{add $item.Quantity 1}}}'>
                                 <i class="bi bi-plus"></i>
                             </button>
                         </div>
                     </td>
-                    <td>${{printf "%.2f" (multiply .Product.Price .Quantity)}}</td>
+                    <td>${{printf "%.2f" (multiply $item.Product.Price $item.Quantity)}}</td>
                     <td>
-                        {{if .IsReady}}
+                        {{if $item.IsReady}}
                         <span class="badge bg-success">Listo</span>
                         {{else}}
                         <span class="badge bg-secondary">Pendiente</span>
                         {{end}}
                     </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-danger" hx-delete="/order/{{$.Order.ID}}/item/{{.ID}}"
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-danger" hx-delete="/order/{{$.OrderID}}/item/{{$item.ID}}"
                             hx-target="#order-items" hx-confirm="¿Eliminar este producto de la orden?">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -54,13 +56,13 @@
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="6" class="text-center py-4">No hay productos en esta orden</td>
+                    <td colspan="7" class="text-center py-4">No hay productos en esta orden</td>
                 </tr>
                 {{end}}
             </tbody>
             <tfoot class="table-group-divider">
                 <tr>
-                    <th colspan="3" class="text-end">Total:</th>
+                    <th colspan="4" class="text-end">Total:</th>
                     <th>${{printf "%.2f" .Order.Total}}</th>
                     <th colspan="2"></th>
                 </tr>
