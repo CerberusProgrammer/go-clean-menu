@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CreateOrder crea una nueva orden para una mesa
@@ -72,7 +73,6 @@ func GetOrders(c *fiber.Ctx) error {
 	})
 }
 
-// Add these missing handlers
 // UpdateOrderItem actualiza un item de la orden
 func UpdateOrderItem(c *fiber.Ctx) error {
 	itemID, err := strconv.Atoi(c.Params("id"))
@@ -100,7 +100,9 @@ func UpdateOrderItem(c *fiber.Ctx) error {
 
 	// Recalcular total de la orden
 	var order Order
-	db.First(&order, item.OrderID)
+	if err := db.First(&order, item.OrderID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
+	}
 
 	var allItems []OrderItem
 	db.Where("order_id = ?", item.OrderID).Preload("Product").Find(&allItems)
@@ -115,14 +117,20 @@ func UpdateOrderItem(c *fiber.Ctx) error {
 
 	c.Set("HX-Trigger", `{"showToast": "Ítem actualizado"}`)
 
-	db.Preload("Items").Preload("Items.Product").First(&order, item.OrderID)
+	// Cargar la orden completa con sus items para la vista actualizada
+	// Agregamos ORDER BY id para mantener un orden consistente
+	db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("id ASC")
+	}).Preload("Items.Product").First(&order, item.OrderID)
 
+	// Return the updated order items with the OrderID explicitly included
 	return c.Render("partials/order_items", fiber.Map{
-		"Order": order,
+		"Order":   order,
+		"OrderID": order.ID,
 	}, "")
 }
 
-// RemoveOrderItem elimina un item de la orden (renaming the existing function to match route declaration)
+// RemoveOrderItem elimina un item de la orden
 func RemoveOrderItem(c *fiber.Ctx) error {
 	orderID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
@@ -131,18 +139,18 @@ func RemoveOrderItem(c *fiber.Ctx) error {
 
 	itemID, err := strconv.Atoi(c.Params("itemId"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID de item inválido")
+		return c.Status(fiber.StatusBadRequest).SendString("ID de ítem inválido")
 	}
 
 	// Buscar el item para obtener información antes de eliminarlo
 	var orderItem OrderItem
-	if result := db.Preload("Product").First(&orderItem, itemID); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Item no encontrado")
+	if err := db.Preload("Product").First(&orderItem, itemID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Ítem no encontrado")
 	}
 
 	// Verificar que pertenezca a esta orden
 	if orderItem.OrderID != uint(orderID) {
-		return c.Status(fiber.StatusBadRequest).SendString("El item no pertenece a esta orden")
+		return c.Status(fiber.StatusBadRequest).SendString("Este ítem no pertenece a la orden especificada")
 	}
 
 	// Actualizar total de la orden
@@ -157,12 +165,15 @@ func RemoveOrderItem(c *fiber.Ctx) error {
 	// Eliminar el item
 	db.Delete(&orderItem)
 
-	// Cargar la orden actualizada con sus items
-	db.Preload("Items").Preload("Items.Product").First(&order, orderID)
+	// Cargar la orden actualizada con sus items, manteniendo el orden por ID
+	db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("id ASC")
+	}).Preload("Items.Product").First(&order, orderID)
 
 	c.Set("HX-Trigger", `{"showToast": "Producto eliminado de la orden"}`)
 	return c.Render("partials/order_items", fiber.Map{
-		"Order": order,
+		"Order":   order,
+		"OrderID": order.ID,
 	}, "")
 }
 
@@ -173,7 +184,10 @@ func GetOrder(c *fiber.Ctx) error {
 	}
 
 	var order Order
-	result := db.Preload("Items").Preload("Items.Product").First(&order, id)
+	result := db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("id ASC")
+	}).Preload("Items.Product").First(&order, id)
+
 	if result.Error != nil {
 		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
