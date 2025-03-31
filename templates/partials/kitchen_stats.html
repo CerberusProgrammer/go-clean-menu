@@ -1,0 +1,315 @@
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <h1 class="page-title m-0">
+        <i class="bi bi-graph-up"></i> Estadísticas de Cocina
+    </h1>
+    <div class="btn-group">
+        <a href="/kitchen/stats?days=7" class="btn btn-outline-primary {{if eq .Days 7}}active{{end}}">7 días</a>
+        <a href="/kitchen/stats?days=30" class="btn btn-outline-primary {{if eq .Days 30}}active{{end}}">30 días</a>
+        <a href="/kitchen/stats?days=90" class="btn btn-outline-primary {{if eq .Days 90}}active{{end}}">90 días</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="macos-card mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="m-0">Productos Más Rápidos</h5>
+                <p class="text-muted small mb-0">Tiempo promedio de preparación</p>
+            </div>
+            <div class="card-body">
+                <canvas id="fastestProductsChart" height="250"></canvas>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Promedio</th>
+                            <th>Mínimo</th>
+                            <th>Máximo</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .FastestProducts}}
+                        <tr>
+                            <td>{{.ProductName}}</td>
+                            <td>{{formatDuration .AvgTime}}</td>
+                            <td>{{formatDuration (multiply 1.0 .MinTime)}}</td>
+                            <td>{{formatDuration (multiply 1.0 .MaxTime)}}</td>
+                            <td>{{.Count}} veces</td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay datos suficientes</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="macos-card mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="m-0">Productos Más Lentos</h5>
+                <p class="text-muted small mb-0">Tiempo promedio de preparación</p>
+            </div>
+            <div class="card-body">
+                <canvas id="slowestProductsChart" height="250"></canvas>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Promedio</th>
+                            <th>Mínimo</th>
+                            <th>Máximo</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .SlowestProducts}}
+                        <tr>
+                            <td>{{.ProductName}}</td>
+                            <td>{{formatDuration .AvgTime}}</td>
+                            <td>{{formatDuration (multiply 1.0 .MinTime)}}</td>
+                            <td>{{formatDuration (multiply 1.0 .MaxTime)}}</td>
+                            <td>{{.Count}} veces</td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay datos suficientes</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="macos-card mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="m-0">Tiempo por Categoría</h5>
+                <p class="text-muted small mb-0">Tiempo promedio de preparación por categoría</p>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryTimesChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="macos-card mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="m-0">Tiempos de Preparación Diarios</h5>
+                <p class="text-muted small mb-0">Tiempo promedio de preparación por día</p>
+            </div>
+            <div class="card-body">
+                <canvas id="dailyPrepTimesChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="macos-card">
+            <div class="card-header bg-transparent">
+                <h5 class="m-0">Análisis por Hora del Día</h5>
+                <p class="text-muted small mb-0">Órdenes y tiempos de preparación por hora</p>
+            </div>
+            <div class="card-body">
+                <canvas id="hourlyStatsChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Configuración común para gráficos
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        }
+    };
+    
+    // Gráfico de productos más rápidos
+    new Chart(
+        document.getElementById('fastestProductsChart').getContext('2d'), 
+        {
+            type: 'bar',
+            data: {
+                labels: [{{range .FastestProducts}}'{{.ProductName}}',{{end}}],
+                datasets: [{
+                    label: 'Tiempo promedio (segundos)',
+                    data: [{{range .FastestProducts}}{{.AvgTime}},{{end}}],
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Segundos'
+                        }
+                    }
+                }
+            }
+        }
+    );
+    
+    // Gráfico de productos más lentos
+    new Chart(
+        document.getElementById('slowestProductsChart').getContext('2d'), 
+        {
+            type: 'bar',
+            data: {
+                labels: [{{range .SlowestProducts}}'{{.ProductName}}',{{end}}],
+                datasets: [{
+                    label: 'Tiempo promedio (segundos)',
+                    data: [{{range .SlowestProducts}}{{.AvgTime}},{{end}}],
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Segundos'
+                        }
+                    }
+                }
+            }
+        }
+    );
+    
+    // Gráfico de tiempos por categoría
+    new Chart(
+        document.getElementById('categoryTimesChart').getContext('2d'), 
+        {
+            type: 'pie',
+            data: {
+                labels: [{{range .CategoryTimes}}'{{.Category}}',{{end}}],
+                datasets: [{
+                    label: 'Tiempo promedio',
+                    data: [{{range .CategoryTimes}}{{.AvgTime}},{{end}}],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)',
+                        'rgba(255, 159, 64, 0.6)'
+                    ]
+                }]
+            },
+            options: chartOptions
+        }
+    );
+    
+    // Gráfico de tiempos diarios
+    new Chart(
+        document.getElementById('dailyPrepTimesChart').getContext('2d'), 
+        {
+            type: 'line',
+            data: {
+                labels: [{{range .DailyPrepTimes}}'{{.Date}}',{{end}}],
+                datasets: [{
+                    label: 'Tiempo promedio (minutos)',
+                    data: [{{range .DailyPrepTimes}}{{div (multiply .AvgTime 1) 60}},{{end}}],
+                    fill: false,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Minutos'
+                        }
+                    }
+                }
+            }
+        }
+    );
+    
+    // Gráfico de estadísticas por hora
+    new Chart(
+        document.getElementById('hourlyStatsChart').getContext('2d'), 
+        {
+            type: 'bar',
+            data: {
+                labels: [{{range .HourlyStats}}'{{.Hour}}:00',{{end}}],
+                datasets: [
+                    {
+                        label: 'Cantidad de Órdenes',
+                        data: [{{range .HourlyStats}}{{.Count}},{{end}}],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Tiempo Promedio (segundos)',
+                        data: [{{range .HourlyStats}}{{.AvgTime}},{{end}}],
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Cantidad de Órdenes'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Segundos'
+                        }
+                    }
+                }
+            }
+        }
+    );
+</script>

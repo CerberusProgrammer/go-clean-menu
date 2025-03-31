@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -41,39 +42,67 @@ func GetKitchenOrders(c *fiber.Ctx) error {
 func ToggleItemStatus(c *fiber.Ctx) error {
 	itemID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("ID de item inválido")
+		return c.Status(fiber.StatusBadRequest).SendString("ID de ítem inválido")
 	}
 
 	var item OrderItem
 	if result := db.First(&item, itemID); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).SendString("Item no encontrado")
+		return c.Status(fiber.StatusNotFound).SendString("Ítem no encontrado")
 	}
 
-	// Cambiar el estado
-	item.IsReady = !item.IsReady
+	// Registrar métricas de tiempo
+	now := time.Now()
+
+	if !item.IsReady {
+		// El producto está pasando de "no listo" a "listo"
+		item.IsReady = true
+
+		// Si no tenía tiempo de inicio, registrarlo
+		if item.CookingStarted == nil {
+			item.CookingStarted = &now
+		}
+
+		// Registrar tiempo de finalización
+		item.CookingFinished = &now
+
+		// Calcular tiempo de cocción total en segundos
+		if item.CookingStarted != nil {
+			cookingTime := int(now.Sub(*item.CookingStarted).Seconds())
+			item.CookingTime = cookingTime
+		}
+	} else {
+		// El producto está pasando de "listo" a "no listo"
+		item.IsReady = false
+		item.CookingFinished = nil // Remover tiempo de finalización
+	}
+
 	db.Save(&item)
 
-	// Verificar si todos los items están listos para sugerir completar la orden
+	// Actualizar el estado de la orden a "in_progress" si estaba en "pending"
 	var order Order
-	db.Preload("Items").First(&order, item.OrderID)
-
-	allItemsReady := true
-	for _, orderItem := range order.Items {
-		if !orderItem.IsReady {
-			allItemsReady = false
-			break
-		}
+	db.First(&order, item.OrderID)
+	if order.Status == "pending" {
+		order.Status = "in_progress"
+		db.Save(&order)
 	}
 
-	if allItemsReady {
-		c.Set("HX-Trigger", `{"showToast": "Todos los productos están listos"}`)
-	} else {
-		c.Set("HX-Trigger", `{"showToast": "Estado actualizado"}`)
+	// Verificar si todos los items están listos para sugerir completar la orden
+	var itemsCount int64
+	var readyItemsCount int64
+
+	db.Model(&OrderItem{}).Where("order_id = ?", item.OrderID).Count(&itemsCount)
+	db.Model(&OrderItem{}).Where("order_id = ? AND is_ready = ?", item.OrderID, true).Count(&readyItemsCount)
+
+	message := "Estado actualizado"
+	if itemsCount > 0 && itemsCount == readyItemsCount {
+		message = "¡Todos los productos están listos! Puede completar la orden."
 	}
+
+	c.Set("HX-Trigger", `{"showToast": "`+message+`"}`)
 
 	// Obtener órdenes pendientes actualizadas para actualizar la vista
 	var pendingOrders []Order
-	db.Where("status = ?", "pending").
+	db.Where("status IN (?)", []string{"pending", "in_progress"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
@@ -114,7 +143,7 @@ func KitchenCompleteOrder(c *fiber.Ctx) error {
 
 	// Obtener órdenes pendientes actualizadas para actualizar la vista
 	var pendingOrders []Order
-	db.Where("status = ?", "pending").
+	db.Where("status IN (?)", []string{"pending", "in_progress"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
@@ -161,4 +190,133 @@ func GetOrderCompletionStatus(c *fiber.Ctx) error {
 		"Percentage": percentage,
 		"OrderID":    id,
 	}, "")
+}
+
+// GetKitchenStats genera estadísticas sobre rendimiento de cocina
+func GetKitchenStats(c *fiber.Ctx) error {
+	// Obtener periodo de análisis (por defecto 30 días)
+	days, _ := strconv.Atoi(c.Query("days", "30"))
+	if days <= 0 {
+		days = 30
+	}
+
+	startDate := time.Now().AddDate(0, 0, -days)
+
+	// Productos más rápidos de cocinar (tiempo promedio)
+	type ProductCookingTime struct {
+		ProductID   uint
+		ProductName string
+		AvgTime     float64 // tiempo promedio en segundos
+		MinTime     int     // tiempo mínimo en segundos
+		MaxTime     int     // tiempo máximo en segundos
+		Count       int     // cantidad de veces cocinado
+	}
+
+	var fastestProducts []ProductCookingTime
+	db.Raw(`
+        SELECT oi.product_id, p.name as product_name, 
+               AVG(oi.cooking_time) as avg_time,
+               MIN(oi.cooking_time) as min_time,
+               MAX(oi.cooking_time) as max_time,
+               COUNT(oi.id) as count
+        FROM order_items oi
+        JOIN products p ON p.id = oi.product_id
+        WHERE oi.cooking_time > 0
+        AND oi.cooking_finished IS NOT NULL
+        AND oi.created_at >= ?
+        GROUP BY oi.product_id, p.name
+        ORDER BY avg_time ASC
+        LIMIT 10
+    `, startDate).Scan(&fastestProducts)
+
+	// Productos más lentos
+	var slowestProducts []ProductCookingTime
+	db.Raw(`
+        SELECT oi.product_id, p.name as product_name, 
+               AVG(oi.cooking_time) as avg_time,
+               MIN(oi.cooking_time) as min_time,
+               MAX(oi.cooking_time) as max_time,
+               COUNT(oi.id) as count
+        FROM order_items oi
+        JOIN products p ON p.id = oi.product_id
+        WHERE oi.cooking_time > 0
+        AND oi.cooking_finished IS NOT NULL
+        AND oi.created_at >= ?
+        GROUP BY oi.product_id, p.name
+        ORDER BY avg_time DESC
+        LIMIT 10
+    `, startDate).Scan(&slowestProducts)
+
+	// Tiempos promedios por categoría
+	type CategoryCookingTime struct {
+		Category string
+		AvgTime  float64
+		Count    int
+	}
+
+	var categoryTimes []CategoryCookingTime
+	db.Raw(`
+        SELECT p.category, AVG(oi.cooking_time) as avg_time, COUNT(oi.id) as count
+        FROM order_items oi
+        JOIN products p ON p.id = oi.product_id
+        WHERE oi.cooking_time > 0
+        AND oi.cooking_finished IS NOT NULL
+        AND oi.created_at >= ?
+        GROUP BY p.category
+        ORDER BY avg_time ASC
+    `, startDate).Scan(&categoryTimes)
+
+	// Tiempo promedio de preparación de órdenes completas
+	type OrderPrepTime struct {
+		Date    string
+		AvgTime float64
+		Count   int
+	}
+
+	var dailyPrepTimes []OrderPrepTime
+	db.Raw(`
+        SELECT DATE(o.created_at) as date,
+               AVG(EXTRACT(EPOCH FROM (MAX(oi.cooking_finished) - MIN(oi.cooking_started)))) as avg_time,
+               COUNT(DISTINCT o.id) as count
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        WHERE o.status = 'completed'
+        AND oi.cooking_finished IS NOT NULL
+        AND oi.cooking_started IS NOT NULL
+        AND o.created_at >= ?
+        GROUP BY DATE(o.created_at)
+        ORDER BY date DESC
+        LIMIT 14
+    `, startDate).Scan(&dailyPrepTimes)
+
+	// Horas pico y tiempos promedio por hora
+	type HourlyStats struct {
+		Hour    int
+		Count   int
+		AvgTime float64
+	}
+
+	var hourlyStats []HourlyStats
+	db.Raw(`
+        SELECT EXTRACT(HOUR FROM o.created_at) as hour,
+               COUNT(DISTINCT o.id) as count,
+               AVG(oi.cooking_time) as avg_time
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        WHERE oi.cooking_time > 0
+        AND o.created_at >= ?
+        GROUP BY EXTRACT(HOUR FROM o.created_at)
+        ORDER BY hour
+    `, startDate).Scan(&hourlyStats)
+
+	return c.Render("kitchen_stats", fiber.Map{
+		"Title":           "Estadísticas de Cocina",
+		"ActivePage":      "kitchen_stats",
+		"Days":            days,
+		"FastestProducts": fastestProducts,
+		"SlowestProducts": slowestProducts,
+		"CategoryTimes":   categoryTimes,
+		"DailyPrepTimes":  dailyPrepTimes,
+		"HourlyStats":     hourlyStats,
+	})
 }

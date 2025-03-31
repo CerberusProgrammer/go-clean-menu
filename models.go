@@ -42,15 +42,18 @@ type Order struct {
 
 // OrderItem representa un producto en una orden
 type OrderItem struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	OrderID   uint      `json:"order_id"`
-	ProductID uint      `json:"product_id"`
-	Product   Product   `json:"product" gorm:"foreignKey:ProductID"`
-	Quantity  int       `json:"quantity"`
-	Notes     string    `json:"notes"`
-	IsReady   bool      `json:"is_ready" gorm:"default:false"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID              uint       `json:"id" gorm:"primaryKey"`
+	OrderID         uint       `json:"order_id"`
+	ProductID       uint       `json:"product_id"`
+	Product         Product    `json:"product" gorm:"foreignKey:ProductID"`
+	Quantity        int        `json:"quantity"`
+	Notes           string     `json:"notes"`
+	IsReady         bool       `json:"is_ready" gorm:"default:false"`
+	CookingStarted  *time.Time `json:"cooking_started"`
+	CookingFinished *time.Time `json:"cooking_finished"`
+	CookingTime     int        `json:"cooking_time_seconds" gorm:"default:0"` // Tiempo en segundos
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 // Settings almacena la configuración de la aplicación

@@ -140,6 +140,20 @@ func main() {
 		"add": func(a, b int) int {
 			return a + b
 		},
+		"calculateProgress": func(items []OrderItem) int {
+			if len(items) == 0 {
+				return 0
+			}
+
+			readyCount := 0
+			for _, item := range items {
+				if item.IsReady {
+					readyCount++
+				}
+			}
+
+			return (readyCount * 100) / len(items)
+		},
 		"sub": func(a, b int) int {
 			return a - b
 		},
@@ -163,6 +177,26 @@ func main() {
 				return s
 			}
 			return s[:length] + "..."
+		},
+		"formatTimeJS": func(t *time.Time) string {
+			if t == nil {
+				return ""
+			}
+			return t.Format(time.RFC3339)
+		},
+		// En la sección donde defines tus funciones de plantilla
+		"formatDuration": func(seconds float64) string {
+			minutes := int(seconds) / 60
+			secs := int(seconds) % 60
+
+			if minutes > 0 {
+				return fmt.Sprintf("%dm %ds", minutes, secs)
+			}
+			return fmt.Sprintf("%ds", secs)
+		},
+		// Añadir esta función en la sección donde defines las funciones de plantilla
+		"float64": func(i int) float64 {
+			return float64(i)
 		},
 	})
 
@@ -222,7 +256,7 @@ func main() {
 	app.Put("/kitchen/items/:id/toggle", ToggleItemStatus)
 	app.Post("/kitchen/order/:id/complete", KitchenCompleteOrder)
 	app.Get("/kitchen/order/:id/status", GetOrderCompletionStatus)
-
+	app.Get("/kitchen/stats", GetKitchenStats)
 	// Rutas de Menu
 	app.Get("/menu", MenuHandler)
 

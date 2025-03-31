@@ -657,32 +657,37 @@ func UpdateOrderNotes(c *fiber.Ctx) error {
 func ProcessOrder(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		log.Printf("Error de conversión de ID: %v", err)
 		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
 	}
 
 	var order Order
 	if result := db.First(&order, id); result.Error != nil {
-		log.Printf("Orden no encontrada: %v", result.Error)
 		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
 	// Verificar que la orden esté en estado pendiente
 	if order.Status != "pending" {
-		log.Printf("La orden #%d no está en estado pendiente", id)
-		return c.Status(fiber.StatusBadRequest).SendString("Solo se pueden procesar órdenes pendientes")
+		return c.Status(fiber.StatusBadRequest).SendString("Solo órdenes pendientes pueden ser procesadas")
 	}
+
+	// Obtener el timestamp actual
+	now := time.Now()
 
 	// Cambiar el estado a "in_progress"
-	log.Printf("Enviando orden #%d a cocina", id)
 	order.Status = "in_progress"
-	order.UpdatedAt = time.Now()
-	if err := db.Save(&order).Error; err != nil {
-		log.Printf("Error al actualizar estado de orden: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Error al procesar la orden")
+	order.UpdatedAt = now
+	db.Save(&order)
+
+	// Registrar tiempo de inicio para todos los items de la orden
+	var items []OrderItem
+	db.Where("order_id = ?", id).Find(&items)
+
+	for _, item := range items {
+		item.CookingStarted = &now
+		db.Save(&item)
 	}
 
-	c.Set("HX-Trigger", `{"showToast": "Orden enviada a cocina"}`)
+	c.Set("HX-Trigger", `{"showToast": "Orden enviada a cocina correctamente"}`)
 	c.Set("HX-Redirect", "/orders")
-	return c.SendString("Orden enviada a cocina correctamente")
+	return c.SendString("Orden enviada a cocina")
 }
