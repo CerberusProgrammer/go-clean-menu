@@ -36,9 +36,9 @@ RUN echo '#!/bin/sh\n\
 set -e\n\
 \n\
 echo "Esperando a que PostgreSQL esté disponible..."\n\
-export PGPASSWORD=$DB_PASSWORD\n\
+export PGPASSWORD=postgres\n\
 \n\
-until psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "SELECT 1;" > /dev/null 2>&1; do\n\
+until psql -h db -U postgres -d go_clean_menu -c "SELECT 1;" > /dev/null 2>&1; do\n\
   echo "PostgreSQL no está disponible aún - esperando..."\n\
   sleep 1\n\
 done\n\
