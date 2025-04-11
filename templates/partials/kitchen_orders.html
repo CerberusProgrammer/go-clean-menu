@@ -1,18 +1,33 @@
 <div class="row g-3">
     {{range .Orders}}
     <div class="col-md-6">
-        <div class="macos-card mb-3">
+        <div class="macos-card mb-3 {{if eq .Status " in_progress"}}border-info{{else}}border-warning{{end}}">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="m-0">Mesa {{.TableNum}} - Orden #{{.ID}}</h5>
-                <span class="badge {{if eq .Status " in_progress"}}bg-info{{else}}bg-primary{{end}}">
-                    {{formatTime .CreatedAt}}
-                </span>
+                <div>
+                    <span class="badge {{if eq .Status " in_progress"}}bg-info{{else}}bg-warning text-dark{{end}} me-2">
+                        {{if eq .Status "in_progress"}}En Preparación{{else}}Pendiente{{end}}
+                    </span>
+                    <span class="badge bg-secondary">
+                        {{formatTime .CreatedAt}}
+                    </span>
+                </div>
             </div>
             <div class="card-body">
+                {{if .Notes}}
+                <div class="alert alert-light p-2 mb-3">
+                    <small><i class="bi bi-info-circle me-1"></i> <strong>Notas:</strong> {{.Notes}}</small>
+                </div>
+                {{end}}
                 <ul class="list-group list-group-flush">
+                    {{$totalItems := len .Items}}
+                    {{$readyItems := 0}}
                     {{range .Items}}
-                    <!-- Modificar la sección de cada ítem para mostrar el tiempo de cocción -->
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                    {{if .IsReady}}
+                    {{$readyItems = add $readyItems 1}}
+                    {{end}}
+                    <li
+                        class="list-group-item d-flex justify-content-between align-items-center bg-transparent {{if .IsReady}}border-success{{end}}">
                         <div>
                             <span class="badge bg-secondary me-2">{{.Quantity}}x</span>
                             <strong>{{.Product.Name}}</strong>
@@ -21,10 +36,12 @@
                             <br>
                             <small class="text-muted">
                                 {{if .IsReady}}
-                                Tiempo: {{.CookingTime}} seg
+                                <span class="text-success"><i class="bi bi-stopwatch"></i> Tiempo: {{.CookingTime}}
+                                    seg</span>
                                 {{else}}
-                                <span id="cooking-timer-{{.ID}}" data-start="{{formatTimeJS .CookingStarted}}">
-                                    Cocinando: 0s
+                                <span id="cooking-timer-{{.ID}}" data-start="{{formatTimeJS .CookingStarted}}"
+                                    class="badge bg-light text-dark">
+                                    <i class="bi bi-hourglass-split me-1"></i>Cocinando: 0s
                                 </span>
                                 {{end}}
                             </small>
@@ -32,9 +49,11 @@
                         </div>
                         <div>
                             <button class="btn btn-sm {{if .IsReady}}btn-success{{else}}btn-outline-secondary{{end}}"
-                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-target="#kitchen-orders">
+                                hx-put="/kitchen/items/{{.ID}}/toggle" hx-target="#kitchen-orders"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                title="{{if .IsReady}}Marcar como pendiente{{else}}Marcar como listo{{end}}">
                                 {{if .IsReady}}
-                                <i class="bi bi-check-circle"></i> Listo
+                                <i class="bi bi-check-circle-fill"></i> Listo
                                 {{else}}
                                 <i class="bi bi-circle"></i> Marcar
                                 {{end}}
@@ -44,15 +63,36 @@
                     {{end}}
                 </ul>
 
-                <div class="progress mt-3" title="Progreso de preparación">
-                    {{template "partials/order_progress" (dict "Percentage" (calculateProgress .Items) "OrderID" .ID)}}
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span><strong>Progreso:</strong> {{$readyItems}}/{{$totalItems}} ítems listos</span>
+                        <span
+                            class="badge {{if eq $readyItems $totalItems}}bg-success{{else if gt $readyItems 0}}bg-info{{else}}bg-secondary{{end}} rounded-pill">
+                            {{percentage $readyItems $totalItems}}%
+                        </span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar {{if eq $readyItems $totalItems}}bg-success{{else if gt $readyItems 0}}bg-info{{else}}bg-secondary{{end}}"
+                            role="progressbar" style="width: {{percentage $readyItems $totalItems}}%"
+                            aria-valuenow="{{percentage $readyItems $totalItems}}" aria-valuemin="0"
+                            aria-valuemax="100">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="card-footer text-end">
-                <button class="btn macos-btn macos-btn-primary" hx-post="/kitchen/order/{{.ID}}/complete"
+                {{if eq $readyItems $totalItems}}
+                <button class="btn macos-btn macos-btn-success" hx-post="/kitchen/order/{{.ID}}/complete"
                     hx-target="#kitchen-orders" hx-confirm="¿Marcar esta orden como completada?">
-                    <i class="bi bi-check2-all me-2"></i>Completar
+                    <i class="bi bi-check2-all me-2"></i>Completar Orden
                 </button>
+                {{else}}
+                <button class="btn macos-btn macos-btn-primary" {{if eq $readyItems 0}}disabled{{end}}
+                    hx-post="/kitchen/order/{{.ID}}/complete" hx-target="#kitchen-orders"
+                    hx-confirm="¿Marcar esta orden como completada? No todos los ítems están listos.">
+                    <i class="bi bi-check2-all me-2"></i>Completar Orden
+                </button>
+                {{end}}
             </div>
         </div>
     </div>
@@ -66,3 +106,49 @@
     </div>
     {{end}}
 </div>
+
+<script>
+    // Actualizar los temporizadores de cocina
+    function updateCookingTimers() {
+        document.querySelectorAll("[id^='cooking-timer-']").forEach(timer => {
+            const startTime = new Date(timer.dataset.start);
+            const now = new Date();
+            const seconds = Math.floor((now - startTime) / 1000);
+
+            // Formatear el tiempo
+            let timeText;
+            if (seconds < 60) {
+                timeText = `${seconds}s`;
+            } else {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                timeText = `${minutes}m ${remainingSeconds}s`;
+            }
+
+            timer.innerHTML = `<i class="bi bi-hourglass-split me-1"></i>Cocinando: ${timeText}`;
+
+            // Añadir clases según el tiempo transcurrido
+            if (seconds > 300) { // más de 5 minutos
+                timer.classList.remove('bg-light', 'bg-warning');
+                timer.classList.add('bg-danger', 'text-white');
+            } else if (seconds > 180) { // más de 3 minutos
+                timer.classList.remove('bg-light', 'bg-danger');
+                timer.classList.add('bg-warning', 'text-dark');
+            }
+        });
+    }
+
+    // Actualizar cada segundo
+    setInterval(updateCookingTimers, 1000);
+
+    // Inicializar al cargar
+    document.addEventListener('DOMContentLoaded', function () {
+        updateCookingTimers();
+
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>

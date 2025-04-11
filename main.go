@@ -198,6 +198,13 @@ func main() {
 		"float64": func(i int) float64 {
 			return float64(i)
 		},
+		// Añadir la función de porcentaje para calcular progreso de órdenes
+		"percentage": func(part, total int) int {
+			if total == 0 {
+				return 0
+			}
+			return (part * 100) / total
+		},
 	})
 
 	// Cargar todas las plantillas, incluidas las parciales

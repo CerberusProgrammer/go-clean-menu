@@ -7,33 +7,87 @@
     </button>
 </div>
 
+<div class="mb-4">
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-primary active filter-btn" data-filter="all">
+            Todas <span class="badge bg-secondary ms-1">{{len .Orders}}</span>
+        </button>
+        <button type="button" class="btn btn-outline-warning filter-btn" data-filter="pending">
+            Pendientes <span class="badge bg-secondary ms-1" id="pending-count">0</span>
+        </button>
+        <button type="button" class="btn btn-outline-info filter-btn" data-filter="in_progress">
+            En Proceso <span class="badge bg-secondary ms-1" id="in-progress-count">0</span>
+        </button>
+    </div>
+</div>
+
 {{if .Orders}}
-<div class="row row-cols-1 row-cols-xl-3 row-cols-lg-2 g-4">
+<div class="row row-cols-1 row-cols-xl-3 row-cols-lg-2 g-4" id="orders-container">
     {{range .Orders}}
-    <div class="col">
-        <div class="macos-card h-100">
+    <div class="col order-item" data-order-status="{{.Status}}">
+        <div class="macos-card h-100 {{if eq .Status " in_progress"}}border-info{{else}}border-warning{{end}}">
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Mesa {{.TableNum}} - Orden #{{.ID}}</h5>
-                <span class="badge {{if eq .Status " in_progress"}}bg-info{{else}}bg-primary{{end}}">
+                <span class="badge {{if eq .Status " in_progress"}}bg-info{{else}}bg-warning text-dark{{end}}">
                     {{if eq .Status "in_progress"}}En Proceso{{else}}Pendiente{{end}}
                 </span>
             </div>
             <div class="card-body">
-                <p class="card-text">
-                    <small class="text-muted">Creada: {{formatTime .CreatedAt}}</small>
-                </p>
-                <p>Productos: {{len .Items}} ítems</p>
-                <p>Total: ${{printf "%.2f" .Total}}</p>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted"><i class="bi bi-clock me-1"></i> {{formatTime .CreatedAt}}</span>
+                    <span><i class="bi bi-tag me-1"></i> {{len .Items}} ítems</span>
+                </div>
+
+                <!-- Mostrar contenido de la orden -->
+                {{if gt (len .Items) 0}}
+                <div class="order-items-preview mb-3">
+                    <small class="text-muted d-block mb-1">Contenido:</small>
+                    <ul class="list-unstyled">
+                        {{range $index, $item := .Items}}
+                        {{if lt $index 3}}
+                        <li>
+                            <span class="badge rounded-pill bg-light text-dark border">{{$item.Quantity}} ×
+                                {{$item.Product.Name}}</span>
+                        </li>
+                        {{end}}
+                        {{end}}
+                        {{if gt (len .Items) 3}}
+                        <li><small class="text-muted">y {{subtract (len .Items) 3}} productos más...</small></li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{end}}
+
+                <p class="text-primary fw-bold mb-1">Total: ${{printf "%.2f" .Total}}</p>
                 {{if .Notes}}
-                <div class="alert alert-secondary p-2 mb-0">
-                    <small>{{.Notes}}</small>
+                <div class="alert alert-light p-2 mb-0">
+                    <small><i class="bi bi-bookmark me-1"></i> {{truncate .Notes 60}}</small>
                 </div>
                 {{end}}
             </div>
             <div class="card-footer bg-transparent border-top-0">
-                <a href="/order/{{.ID}}" class="btn btn-primary w-100">
-                    <i class="bi bi-eye me-2"></i>Ver Detalles
-                </a>
+                <div class="d-flex justify-content-between">
+                    <a href="/order/{{.ID}}" class="btn btn-primary">
+                        <i class="bi bi-eye me-2"></i>Ver Detalles
+                    </a>
+                    {{if eq .Status "pending"}}
+                    <button class="btn btn-outline-primary" hx-post="/order/{{.ID}}/process" hx-swap="none"
+                        hx-confirm="¿Enviar esta orden a cocina?" hx-indicator="#process-indicator-{{.ID}}">
+                        <span id="process-indicator-{{.ID}}" class="htmx-indicator me-2">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </span>
+                        <i class="bi bi-arrow-right-circle"></i>
+                    </button>
+                    {{else}}
+                    <button class="btn btn-outline-success" hx-post="/order/{{.ID}}/complete" hx-swap="none"
+                        hx-confirm="¿Completar esta orden?" hx-indicator="#complete-indicator-{{.ID}}">
+                        <span id="complete-indicator-{{.ID}}" class="htmx-indicator me-2">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </span>
+                        <i class="bi bi-check-circle"></i>
+                    </button>
+                    {{end}}
+                </div>
             </div>
         </div>
     </div>
@@ -82,3 +136,62 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Contar órdenes por estado al cargar la página
+    document.addEventListener('DOMContentLoaded', function () {
+        updateOrderCounts();
+        setupFilterListeners();
+    });
+
+    function updateOrderCounts() {
+        const pendingCount = document.querySelectorAll('.order-item[data-order-status="pending"]').length;
+        const inProgressCount = document.querySelectorAll('.order-item[data-order-status="in_progress"]').length;
+
+        document.getElementById('pending-count').textContent = pendingCount;
+        document.getElementById('in-progress-count').textContent = inProgressCount;
+    }
+
+    function setupFilterListeners() {
+        document.querySelectorAll('.filter-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                // Eliminar la clase activa de todos los botones
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Añadir la clase activa al botón clickeado
+                this.classList.add('active');
+
+                // Obtener el filtro
+                const filter = this.dataset.filter;
+
+                // Filtrar las órdenes
+                document.querySelectorAll('.order-item').forEach(item => {
+                    if (filter === 'all' || item.dataset.orderStatus === filter) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+    }
+
+    // Actualizar la página cuando se complete o procese una orden
+    document.body.addEventListener('htmx:beforeSwap', function (evt) {
+        if (evt.detail.target && evt.detail.target.id === 'orders-container') {
+            updateOrderCounts();
+        }
+    });
+
+    // Recargar toda la página cuando una orden sea completada o procesada
+    document.body.addEventListener('htmx:responseHeaders', function (evt) {
+        const redirectHeader = evt.detail.headers['HX-Redirect'];
+        if (redirectHeader && redirectHeader === '/orders') {
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
+        }
+    });
+</script>

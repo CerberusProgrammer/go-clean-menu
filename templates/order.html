@@ -1,12 +1,25 @@
+<!-- Mejoramos la cabecera de la orden mostrando más información sobre estados -->
 <div class="mb-4 d-flex justify-content-between align-items-center">
     <h1 class="page-title m-0">
         <i class="bi bi-receipt-cutoff"></i> Orden #{{.OrderID}} - Mesa {{.TableNum}}
+        <!-- Agregamos un indicador visual del estado -->
+        {{if eq .Order.Status "completed"}}
+        <span class="badge bg-success ms-2">Completada</span>
+        {{else if eq .Order.Status "in_progress"}}
+        <span class="badge bg-info ms-2">En Preparación</span>
+        {{else if eq .Order.Status "cancelled"}}
+        <span class="badge bg-danger ms-2">Cancelada</span>
+        {{else}}
+        <span class="badge bg-warning text-dark ms-2">Pendiente</span>
+        {{end}}
     </h1>
     <div>
         <button class="btn macos-btn btn-outline-secondary me-2" hx-get="/orders" hx-target="body" hx-push-url="true">
             <i class="bi bi-arrow-left me-2"></i>Regresar
         </button>
 
+        <!-- Solo mostrar botón de cancelar si no está completada o ya cancelada -->
+        {{if and (ne .Order.Status "completed") (ne .Order.Status "cancelled")}}
         <button class="btn macos-btn btn-outline-danger me-2" hx-post="/order/{{.OrderID}}/cancel" hx-swap="none"
             hx-confirm="¿Está seguro de cancelar esta orden?" hx-indicator="#cancel-indicator">
             <span id="cancel-indicator" class="htmx-indicator me-2">
@@ -14,7 +27,9 @@
             </span>
             <i class="bi bi-x-circle me-2"></i>Cancelar Orden
         </button>
+        {{end}}
 
+        <!-- Mostrar botón según el estado de la orden -->
         {{if eq .Order.Status "pending"}}
         <button class="btn macos-btn btn-primary" hx-post="/order/{{.OrderID}}/process" hx-swap="none"
             hx-confirm="¿Enviar este pedido a cocina?" hx-indicator="#process-indicator">
@@ -23,13 +38,17 @@
             </span>
             <i class="bi bi-arrow-right-circle me-2"></i>Enviar a Cocina
         </button>
-        {{else}}
+        {{else if eq .Order.Status "in_progress"}}
         <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.OrderID}}/complete" hx-swap="none"
             hx-confirm="¿Está seguro de completar esta orden?" hx-indicator="#complete-indicator">
             <span id="complete-indicator" class="htmx-indicator me-2">
                 <span class="spinner-border spinner-border-sm" role="status"></span>
             </span>
             <i class="bi bi-check-circle me-2"></i>Completar Orden
+        </button>
+        {{else if eq .Order.Status "completed"}}
+        <button class="btn macos-btn btn-outline-secondary" hx-get="/history/report/{{.OrderID}}" hx-swap="none">
+            <i class="bi bi-printer me-2"></i>Imprimir Recibo
         </button>
         {{end}}
     </div>
@@ -49,6 +68,8 @@
                         <span class="badge bg-warning text-dark">Pendiente</span>
                         {{else if eq .Order.Status "in_progress"}}
                         <span class="badge bg-info">En Preparación</span>
+                        {{else if eq .Order.Status "cancelled"}}
+                        <span class="badge bg-danger">Cancelada</span>
                         {{else}}
                         <span class="badge bg-success">Completada</span>
                         {{end}}
@@ -57,15 +78,30 @@
                         <span class="text-muted">Creada: {{formatDate .Order.CreatedAt}}</span>
                     </div>
                 </div>
+
+                <!-- Agregar la barra de progreso solo para órdenes en preparación -->
+                {{if eq .Order.Status "in_progress"}}
+                <div class="progress mt-2" id="order-progress" hx-get="/kitchen/order/{{.OrderID}}/status"
+                    hx-trigger="load, every 10s" hx-target="#order-progress">
+                    <!-- Se cargará con el componente de progreso -->
+                    <div class="progress-bar bg-info" role="progressbar" style="width: 0%" aria-valuenow="0"
+                        aria-valuemin="0" aria-valuemax="100">
+                        0%
+                    </div>
+                </div>
+                {{end}}
             </div>
 
             <!-- Notas de la orden -->
             <div class="order-notes">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label m-0">Notas de la orden:</label>
+                    <!-- Solo permitir editar si no está completada -->
+                    {{if and (ne .Order.Status "completed") (ne .Order.Status "cancelled")}}
                     <button class="btn btn-sm btn-outline-secondary" onclick="toggleOrderNotes()">
                         <i class="bi bi-pencil"></i> Editar
                     </button>
+                    {{end}}
                 </div>
 
                 <!-- Vista de notas -->
@@ -77,7 +113,8 @@
                     {{end}}
                 </div>
 
-                <!-- Formulario para editar notas -->
+                <!-- Formulario para editar notas - solo visible para órdenes editables -->
+                {{if and (ne .Order.Status "completed") (ne .Order.Status "cancelled")}}
                 <form id="order-notes-form" hx-put="/order/{{.OrderID}}/notes" hx-swap="none" class="d-none">
                     <div class="input-group mb-2">
                         <textarea class="form-control" name="notes" rows="2">{{.Order.Notes}}</textarea>
@@ -86,10 +123,12 @@
                             onclick="toggleOrderNotes()">Cancelar</button>
                     </div>
                 </form>
+                {{end}}
             </div>
         </div>
 
-        <!-- Búsqueda de productos -->
+        <!-- Búsqueda de productos solo disponible para órdenes editables -->
+        {{if and (ne .Order.Status "completed") (ne .Order.Status "cancelled")}}
         <div class="macos-card p-3 mb-4">
             <h5 class="mb-3 border-bottom pb-2">Buscar Productos</h5>
             <div class="search-container">
@@ -113,16 +152,29 @@
                 {{end}}
             </div>
         </div>
+        {{else}}
+        <!-- Mensaje para órdenes no editables -->
+        <div class="macos-card p-3">
+            <div class="text-center py-2">
+                <i class="bi bi-lock fs-4 text-muted"></i>
+                <p class="mb-0 mt-2">Esta orden no es editable</p>
+                <small class="text-muted">Las órdenes {{if eq .Order.Status
+                    "completed"}}completadas{{else}}canceladas{{end}} no se pueden modificar</small>
+            </div>
+        </div>
+        {{end}}
     </div>
 
     <!-- Columna central: Ítems de la orden y productos -->
     <div class="col-lg-8">
         <!-- Ítems de la orden -->
         <div id="order-items">
-            {{template "partials/order_items" (dict "Order" .Order "OrderID" .OrderID)}}
+            {{template "partials/order_items" (dict "Order" .Order "OrderID" .OrderID "ReadOnly" (or (eq .Order.Status
+            "completed") (eq .Order.Status "cancelled")))}}
         </div>
 
-        <!-- Lista de productos -->
+        <!-- Lista de productos - solo si la orden es editable -->
+        {{if and (ne .Order.Status "completed") (ne .Order.Status "cancelled")}}
         <div class="macos-card">
             <div class="tab-content p-3" id="productTabsContent">
                 <!-- Pestaña de todos los productos -->
@@ -180,6 +232,7 @@
                 {{end}}
             </div>
         </div>
+        {{end}}
     </div>
 </div>
 
@@ -225,7 +278,7 @@
 <!-- Resto del javascript permanece igual -->
 <script>
     // Filtro de búsqueda para productos
-    document.getElementById('product-search').addEventListener('input', function () {
+    document.getElementById('product-search')?.addEventListener('input', function () {
         const searchTerm = this.value.toLowerCase();
         document.querySelectorAll('.product-item').forEach(item => {
             const name = item.dataset.name.toLowerCase();
@@ -263,8 +316,6 @@
         const modal = new bootstrap.Modal(document.getElementById('productOptionsModal'));
         modal.show();
     }
-
-
 
     // Funciones para incrementar/decrementar cantidad
     function increaseQuantity() {
@@ -318,7 +369,7 @@
             try {
                 const triggers = JSON.parse(eventDetail);
                 if (triggers.showToast) {
-                    showToast(triggers.showToast);
+                    showToast(triggers.showToast, triggers.toastType || 'info');
                 }
             } catch (e) {
                 console.error("Error parsing JSON from HX-Trigger:", e);
@@ -326,14 +377,32 @@
         }
     });
 
-    // Función para mostrar toast
-    function showToast(message) {
-        const toastEl = document.getElementById('toast');
-        const toastMessage = document.getElementById('toast-message');
-        const toast = new bootstrap.Toast(toastEl);
+    // Función para mostrar toast con tipo
+    function showToast(message, type = 'info') {
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
 
-        toastMessage.textContent = message;
+        const toastContent = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        toastEl.innerHTML = toastContent;
+
+        document.querySelector('.toast-container').appendChild(toastEl);
+        const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
         toast.show();
+
+        // Eliminar el toast del DOM después de ocultarse
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
     }
 
     // Manejar eventos de redirección

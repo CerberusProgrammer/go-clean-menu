@@ -1,35 +1,104 @@
-<table class="table">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Mesa</th>
-            <th>Productos</th>
-            <th>Total</th>
-            <th>Fecha</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Mesa</th>
+                <th>Productos</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th class="text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Orders}}
+            <tr>
+                <td><a href="/order/{{.ID}}" class="text-decoration-none fw-bold">#{{.ID}}</a></td>
+                <td>Mesa {{.TableNum}}</td>
+                <td>
+                    <span class="badge rounded-pill bg-primary">{{.ItemCount}} ítems</span>
+                </td>
+                <td class="fw-bold text-success">${{printf "%.2f" .Total}}</td>
+                <td>
+                    {{if eq .Status "completed"}}
+                    <span class="badge bg-success">Completada</span>
+                    {{else if eq .Status "cancelled"}}
+                    <span class="badge bg-danger">Cancelada</span>
+                    {{else}}
+                    <span class="badge bg-warning text-dark">Pendiente</span>
+                    {{end}}
+                </td>
+                <td>
+                    <div>{{formatDate .CreatedAt}}</div>
+                    <small class="text-muted">{{formatTime .CreatedAt}}</small>
+                </td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" hx-get="/history/report/{{.ID}}" hx-swap="none"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="Ver recibo">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </button>
+                        {{if eq .Status "completed"}}
+                        <button class="btn btn-outline-secondary" hx-post="/order/{{.ID}}/duplicate" hx-swap="none"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="Duplicar orden">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                        <button class="btn btn-outline-info" onclick="printOrderDetails({{.ID}})"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="Imprimir">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                        {{end}}
+                    </div>
+                </td>
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="py-5">
+                        <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                        <p class="mt-3 text-muted">No hay órdenes en este período</p>
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Información del periodo -->
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted">
+        <small>Período: {{formatDate .StartDate}} - {{formatDate .EndDate}}</small>
+    </div>
+    <div>
+        <span class="badge bg-light text-dark border">Total órdenes: {{len .Orders}}</span>
+
+        {{$totalAmount := 0.0}}
         {{range .Orders}}
-        <tr>
-            <td><a href="/order/{{.ID}}">#{{.ID}}</a></td>
-            <td>Mesa {{.TableNum}}</td>
-            <td>{{.ItemCount}} items</td>
-            <td>${{printf "%.2f" .Total}}</td>
-            <td>{{formatDate .CreatedAt}}</td>
-            <td>
-                <button class="btn btn-sm btn-outline-primary" hx-get="/history/report/{{.ID}}" hx-swap="none">
-                    <i class="bi bi-file-earmark-text"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary" hx-post="/order/{{.ID}}/duplicate" hx-swap="none">
-                    <i class="bi bi-copy"></i>
-                </button>
-            </td>
-        </tr>
-        {{else}}
-        <tr>
-            <td colspan="6" class="text-center py-4">No hay órdenes en este período</td>
-        </tr>
+        {{$totalAmount = add (float64 $totalAmount) .Total}}
         {{end}}
-    </tbody>
-</table>
+
+        <span class="badge bg-success ms-2">Total ventas: ${{printf "%.2f" $totalAmount}}</span>
+    </div>
+</div>
+
+<script>
+    // Inicializar tooltips
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+
+    // Función para imprimir detalles de orden
+    function printOrderDetails(orderId) {
+        showToast('Preparando impresión de la orden #' + orderId, 'info');
+
+        // Simular impresión (en una implementación real, esto haría una petición AJAX)
+        setTimeout(() => {
+            showToast('Orden #' + orderId + ' enviada a impresión', 'success');
+        }, 1000);
+    }
+</script>
