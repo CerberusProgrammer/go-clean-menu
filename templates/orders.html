@@ -58,6 +58,13 @@
                 </div>
                 {{end}}
 
+                <div class="progress mt-2 mb-2" style="height: 22px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: {{calculateProgress .Items}}%;"
+                        aria-valuenow="{{calculateProgress .Items}}" aria-valuemin="0" aria-valuemax="100">
+                        {{calculateProgress .Items}}%
+                    </div>
+                </div>
+
                 <p class="text-primary fw-bold mb-1">Total: ${{printf "%.2f" .Total}}</p>
                 {{if .Notes}}
                 <div class="alert alert-light p-2 mb-0">
@@ -194,4 +201,13 @@
             }, 100);
         }
     });
+
+    // WebSocket para órdenes (mesero)
+    const wsOrders = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/orders');
+    wsOrders.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "order_update") {
+            htmx.ajax('GET', '/orders', '#orders-container');
+        }
+    };
 </script>

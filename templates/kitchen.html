@@ -63,4 +63,13 @@
     setInterval(function () {
         htmx.ajax('GET', '/kitchen/orders', '#kitchen-orders');
     }, 30000);
+
+    // WebSocket para cocina
+    const wsKitchen = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/kitchen');
+    wsKitchen.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "kitchen_update") {
+            htmx.ajax('GET', '/kitchen/orders', '#kitchen-orders');
+        }
+    };
 </script>

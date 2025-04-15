@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,12 +12,23 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
+	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB
+
+// WebSocket clients and broadcaster
+var orderClients = make(map[*websocket.Conn]bool)
+var kitchenClients = make(map[*websocket.Conn]bool)
+var wsBroadcast = make(chan WSMessage)
+
+type WSMessage struct {
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
+}
 
 func initDatabase() {
 	var err error
@@ -104,6 +116,49 @@ func seedProducts() {
 	}
 }
 
+func wsOrders(c *websocket.Conn) {
+	orderClients[c] = true
+	defer func() {
+		delete(orderClients, c)
+		c.Close()
+	}()
+	for {
+		if _, _, err := c.ReadMessage(); err != nil {
+			break
+		}
+	}
+}
+
+func wsKitchen(c *websocket.Conn) {
+	kitchenClients[c] = true
+	defer func() {
+		delete(kitchenClients, c)
+		c.Close()
+	}()
+	for {
+		if _, _, err := c.ReadMessage(); err != nil {
+			break
+		}
+	}
+}
+
+func wsBroadcaster() {
+	for {
+		msg := <-wsBroadcast
+		data, _ := json.Marshal(msg)
+		switch msg.Type {
+		case "order_update":
+			for c := range orderClients {
+				c.WriteMessage(websocket.TextMessage, data)
+			}
+		case "kitchen_update":
+			for c := range kitchenClients {
+				c.WriteMessage(websocket.TextMessage, data)
+			}
+		}
+	}
+}
+
 func main() {
 	// Cargar variables de entorno
 	if err := godotenv.Load(); err != nil {
@@ -128,7 +183,7 @@ func main() {
 				return nil, fmt.Errorf("invalid dict call, needs to be pairs")
 			}
 			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
+			for i := 0; len(values) > i; i += 2 {
 				key, ok := values[i].(string)
 				if !ok {
 					return nil, fmt.Errorf("dict keys must be strings")
@@ -290,6 +345,13 @@ func main() {
 	app.Post("/tables", CreateTable)
 	app.Delete("/tables/:id", DeleteTable)
 	app.Post("/tables/reset", ResetTables)
+
+	// Rutas WebSocket
+	app.Get("/ws/orders", websocket.New(wsOrders))
+	app.Get("/ws/kitchen", websocket.New(wsKitchen))
+
+	// Iniciar broadcaster
+	go wsBroadcaster()
 
 	// Iniciar servidor
 	port := os.Getenv("PORT")

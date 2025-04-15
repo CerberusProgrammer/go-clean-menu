@@ -271,6 +271,17 @@ func CompleteOrder(c *fiber.Ctx) error {
 		log.Printf("Mesa %d liberada", order.TableNum)
 	}
 
+	// --- Notificación WebSocket ---
+	wsBroadcast <- WSMessage{
+		Type:    "order_update",
+		Payload: order,
+	}
+	wsBroadcast <- WSMessage{
+		Type:    "kitchen_update",
+		Payload: order,
+	}
+	// -----------------------------
+
 	c.Set("HX-Trigger", `{"showToast": "Orden completada correctamente"}`)
 	c.Set("HX-Redirect", "/orders")
 	return c.SendString("Orden completada correctamente")
@@ -314,6 +325,17 @@ func CancelOrder(c *fiber.Ctx) error {
 	} else {
 		log.Printf("Mesa %d liberada", order.TableNum)
 	}
+
+	// --- Notificación WebSocket ---
+	wsBroadcast <- WSMessage{
+		Type:    "order_update",
+		Payload: order,
+	}
+	wsBroadcast <- WSMessage{
+		Type:    "kitchen_update",
+		Payload: order,
+	}
+	// -----------------------------
 
 	c.Set("HX-Trigger", `{"showToast": "Orden cancelada"}`)
 	c.Set("HX-Redirect", "/orders")
@@ -686,6 +708,17 @@ func ProcessOrder(c *fiber.Ctx) error {
 		item.CookingStarted = &now
 		db.Save(&item)
 	}
+
+	// --- Notificación WebSocket ---
+	wsBroadcast <- WSMessage{
+		Type:    "order_update",
+		Payload: order,
+	}
+	wsBroadcast <- WSMessage{
+		Type:    "kitchen_update",
+		Payload: order,
+	}
+	// -----------------------------
 
 	c.Set("HX-Trigger", `{"showToast": "Orden enviada a cocina correctamente"}`)
 	c.Set("HX-Redirect", "/orders")

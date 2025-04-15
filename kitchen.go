@@ -100,6 +100,17 @@ func ToggleItemStatus(c *fiber.Ctx) error {
 
 	c.Set("HX-Trigger", `{"showToast": "`+message+`"}`)
 
+	// --- Notificación WebSocket ---
+	wsBroadcast <- WSMessage{
+		Type:    "order_update",
+		Payload: order,
+	}
+	wsBroadcast <- WSMessage{
+		Type:    "kitchen_update",
+		Payload: order,
+	}
+	// -----------------------------
+
 	// Obtener órdenes pendientes actualizadas para actualizar la vista
 	var pendingOrders []Order
 	db.Where("status IN (?)", []string{"pending", "in_progress"}).

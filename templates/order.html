@@ -92,6 +92,20 @@
                 {{end}}
             </div>
 
+            <!-- Barra de progreso visual para la orden -->
+            {{if gt (len .Order.Items) 0}}
+            <div class="macos-card mb-4 p-3">
+                <h6 class="mb-2">Progreso de la orden</h6>
+                <div class="progress" style="height: 22px;">
+                    <div class="progress-bar bg-info" role="progressbar"
+                        style="width: {{calculateProgress .Order.Items}}%;"
+                        aria-valuenow="{{calculateProgress .Order.Items}}" aria-valuemin="0" aria-valuemax="100">
+                        {{calculateProgress .Order.Items}}%
+                    </div>
+                </div>
+            </div>
+            {{end}}
+
             <!-- Notas de la orden -->
             <div class="order-notes">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -430,4 +444,12 @@
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
     });
+
+    // WebSocket para progreso de orden individual
+    const wsOrders = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/orders');
+    wsOrders.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "order_update" && msg.payload && msg.payload.ID == {{.OrderID }}) {
+        htmx.ajax('GET', '/order/{{.OrderID}}', 'body');
+    }};
 </script>

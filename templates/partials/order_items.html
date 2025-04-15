@@ -25,6 +25,12 @@
                     <td>
                         <strong>{{$item.Product.Name}}</strong>
                         {{if $item.Notes}}<br><small class="text-muted">{{$item.Notes}}</small>{{end}}
+                        {{if $item.CookingStarted}}
+                        <div>
+                            <span id="cooking-timer-{{$item.ID}}" data-start="{{formatTimeJS $item.CookingStarted}}"
+                                class="badge bg-light text-dark"></span>
+                        </div>
+                        {{end}}
                     </td>
                     <td>${{printf "%.2f" $item.Product.Price}}</td>
                     <td>
@@ -80,3 +86,30 @@
         </table>
     </div>
 </div>
+<script>
+    function updateCookingTimers() {
+        document.querySelectorAll("[id^='cooking-timer-']").forEach(timer => {
+            const startTime = new Date(timer.dataset.start);
+            const now = new Date();
+            const seconds = Math.floor((now - startTime) / 1000);
+            let timeText;
+            if (seconds < 60) {
+                timeText = `${seconds}s`;
+            } else {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                timeText = `${minutes}m ${remainingSeconds}s`;
+            }
+            timer.innerHTML = `<i class='bi bi-hourglass-split me-1'></i>${timeText}`;
+            if (seconds > 300) {
+                timer.classList.remove('bg-light', 'bg-warning');
+                timer.classList.add('bg-danger', 'text-white');
+            } else if (seconds > 180) {
+                timer.classList.remove('bg-light', 'bg-danger');
+                timer.classList.add('bg-warning', 'text-dark');
+            }
+        });
+    }
+    setInterval(updateCookingTimers, 1000);
+    document.addEventListener('DOMContentLoaded', updateCookingTimers);
+</script>
