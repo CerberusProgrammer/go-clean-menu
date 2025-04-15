@@ -16,6 +16,7 @@
     <style>
         :root {
             --accent-color: #0071e3;
+            --accent-color-dark: #0062c2;
             --bg-color: #f5f5f7;
             --card-bg: #ffffff;
             --text-color: #1d1d1f;
@@ -33,52 +34,332 @@
             line-height: 1.5;
             padding-top: 0;
             padding-bottom: 2rem;
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
-        .macos-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-            transition: box-shadow 0.3s ease, transform 0.2s ease;
-            overflow: hidden;
+        body.dark-mode {
+            --bg-color: #18191a;
+            --card-bg: #23272f;
+            --text-color: #f5f5f7;
+            --secondary-text: #b0b3b8;
+            --border-color: #34373e;
+            --accent-color: #2997ff;
+            --accent-color-dark: #1570ef;
+            --success-color: #30d158;
+            --warning-color: #ffd60a;
+            --danger-color: #ff453a;
         }
 
-        .macos-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
+        body.dark-mode {
+            background: var(--bg-color);
+            color: var(--text-color);
         }
 
-        .macos-btn {
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .macos-btn-primary {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            color: white;
-        }
-
-        .macos-btn-primary:hover {
-            background-color: #0062c2;
-            border-color: #0062c2;
-        }
-
-        .macos-navbar {
-            backdrop-filter: blur(10px);
-            background-color: rgba(255, 255, 255, 0.85);
+        body.dark-mode .macos-appbar {
+            background: rgba(30, 32, 34, 0.92);
             border-bottom: 1px solid var(--border-color);
-            padding: 15px 0;
-            margin-bottom: 24px;
+            box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
         }
 
+        body.dark-mode .sidebar {
+            background: rgba(35, 39, 47, 0.98);
+            border-right: 1.5px solid var(--border-color);
+            box-shadow: 2px 0 16px rgba(0, 0, 0, 0.10);
+        }
+
+        body.dark-mode .macos-card,
+        body.dark-mode .table,
+        body.dark-mode .modal-content {
+            background: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color);
+            box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.13);
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select {
+            background: #23272f !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .form-control::placeholder {
+            color: #b0b3b8;
+            opacity: 1;
+        }
+
+        body.dark-mode .input-group-text {
+            background: #23272f !important;
+            color: var(--secondary-text) !important;
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .list-group-item,
+        body.dark-mode .list-group-item-action {
+            background: transparent !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .list-group-item-action.active,
+        body.dark-mode .list-group-item.active {
+            background: var(--accent-color) !important;
+            color: #fff !important;
+            border-color: var(--accent-color) !important;
+        }
+
+        body.dark-mode .list-group-item-action:hover,
+        body.dark-mode .list-group-item:hover {
+            background: rgba(41, 151, 255, 0.10) !important;
+            color: var(--accent-color) !important;
+        }
+
+        body.dark-mode .nav-pills .nav-link.active,
+        body.dark-mode .nav-pills .show>.nav-link {
+            background: var(--accent-color) !important;
+            color: #fff !important;
+        }
+
+        body.dark-mode .nav-pills .nav-link {
+            color: var(--text-color) !important;
+        }
+
+        body.dark-mode .badge.bg-light,
+        body.dark-mode .badge.bg-secondary {
+            background: #34373e !important;
+            color: #f5f5f7 !important;
+        }
+
+        body.dark-mode .text-muted,
+        body.dark-mode .form-text,
+        body.dark-mode small {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .btn-outline-secondary {
+            color: var(--secondary-text) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .btn-outline-secondary:hover {
+            background: var(--accent-color) !important;
+            color: #fff !important;
+            border-color: var(--accent-color) !important;
+        }
+
+        body.dark-mode .btn-outline-primary {
+            color: var(--accent-color) !important;
+            border-color: var(--accent-color) !important;
+        }
+
+        body.dark-mode .btn-outline-primary:hover {
+            background: var(--accent-color) !important;
+            color: #fff !important;
+            border-color: var(--accent-color) !important;
+        }
+
+        body.dark-mode .btn-outline-info {
+            color: #66d9ff !important;
+            border-color: #66d9ff !important;
+        }
+
+        body.dark-mode .btn-outline-info:hover {
+            background: #66d9ff !important;
+            color: #18191a !important;
+            border-color: #66d9ff !important;
+        }
+
+        body.dark-mode .btn-outline-danger {
+            color: #ff453a !important;
+            border-color: #ff453a !important;
+        }
+
+        body.dark-mode .btn-outline-danger:hover {
+            background: #ff453a !important;
+            color: #fff !important;
+            border-color: #ff453a !important;
+        }
+
+        body.dark-mode .btn-outline-success {
+            color: #30d158 !important;
+            border-color: #30d158 !important;
+        }
+
+        body.dark-mode .btn-outline-success:hover {
+            background: #30d158 !important;
+            color: #18191a !important;
+            border-color: #30d158 !important;
+        }
+
+        body.dark-mode .border,
+        body.dark-mode hr {
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .page-title i,
+        body.dark-mode .bi {
+            color: var(--accent-color) !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select {
+            background: #23272f;
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .form-control:focus,
+        body.dark-mode .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(41, 151, 255, 0.10);
+        }
+
+        body.dark-mode .sidebar-menu a,
+        body.dark-mode .sidebar-heading {
+            color: var(--secondary-text);
+        }
+
+        body.dark-mode .sidebar-menu a.active {
+            color: var(--accent-color);
+            background: rgba(41, 151, 255, 0.13);
+        }
+
+        body.dark-mode .sidebar-menu a:hover {
+            color: var(--accent-color);
+            background: rgba(41, 151, 255, 0.07);
+        }
+
+        body.dark-mode .badge.bg-light,
+        body.dark-mode .badge.bg-secondary {
+            background: #34373e !important;
+            color: #f5f5f7 !important;
+        }
+
+        body.dark-mode .input-group-text {
+            background: #23272f;
+            color: var(--secondary-text);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .table th,
+        body.dark-mode .table td {
+            background: transparent;
+            color: var(--text-color);
+        }
+
+        body.dark-mode .table thead th {
+            background: #23272f;
+            color: var(--secondary-text);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        body.dark-mode .alert-light {
+            background: #23272f;
+            color: var(--secondary-text);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .btn,
+        body.dark-mode .macos-btn {
+            color: var(--accent-color);
+            background: #23272f;
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .btn:hover,
+        body.dark-mode .macos-btn:hover {
+            background: var(--accent-color);
+            color: #fff;
+        }
+
+        body.dark-mode .btn-primary,
+        body.dark-mode .macos-btn-primary {
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+        }
+
+        body.dark-mode .btn-outline-secondary {
+            color: var(--secondary-text);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .modal-content {
+            background: #23272f;
+            color: var(--text-color);
+        }
+
+        body.dark-mode .sidebar-overlay {
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        /* Drawer lateral */
         .sidebar {
-            position: sticky;
-            top: 20px;
-            padding-right: 15px;
+            background: rgba(245, 245, 247, 0.98);
+            border-right: 1.5px solid var(--border-color);
+            box-shadow: 2px 0 16px rgba(0, 0, 0, 0.03);
+            position: fixed;
+            top: 64px;
+            left: 0;
+            height: calc(100vh - 64px);
+            width: 220px;
+            overflow-y: auto;
+            z-index: 1040;
+            padding-top: 2.2rem;
+            padding-bottom: 2rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .sidebar-collapsed {
+            min-width: 0;
+            width: 0;
+            overflow: hidden;
+            padding: 0;
+            transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .sidebar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.7rem;
+            color: var(--accent-color);
+            margin-right: 10px;
+        }
+
+        @media (max-width: 991px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 2000;
+                background: var(--card-bg);
+                box-shadow: 2px 0 16px rgba(0, 0, 0, 0.08);
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(.4, 0, .2, 1);
+                min-width: 210px;
+                padding-top: 1.5rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-toggle {
+                display: inline-block;
+            }
+
+            .main-content {
+                padding-left: 0 !important;
+                padding-top: 70px !important;
+            }
         }
 
         .sidebar-menu {
@@ -98,22 +379,25 @@
             color: var(--text-color);
             text-decoration: none;
             border-radius: 8px;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 1.05rem;
+            margin-bottom: 2px;
         }
 
         .sidebar-menu a:hover {
-            background-color: rgba(0, 0, 0, 0.04);
+            background-color: rgba(0, 113, 227, 0.07);
+            color: var(--accent-color);
         }
 
         .sidebar-menu a.active {
-            background-color: rgba(0, 113, 227, 0.1);
+            background-color: rgba(0, 113, 227, 0.13);
             color: var(--accent-color);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .sidebar-menu i {
             margin-right: 12px;
-            font-size: 18px;
+            font-size: 20px;
         }
 
         .sidebar-heading {
@@ -122,600 +406,287 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--secondary-text);
-            padding: 0 16px;
-            margin-top: 25px;
-            margin-bottom: 10px;
+            padding-left: 0.7rem;
+            margin-top: 2.5rem;
+            margin-bottom: 0.7rem;
         }
 
-        .product-card {
-            transition: all 0.2s ease-in-out;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            background: var(--card-bg);
-            padding: 16px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            cursor: pointer;
-        }
-
-        .product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-            border-color: var(--accent-color);
-        }
-
-        /* Numeración de ítems en tabla */
-        .table tbody tr {
-            transition: background-color 0.2s;
-        }
-
-        .table tbody tr:hover {
-            background-color: rgba(0, 113, 227, 0.05);
-        }
-
-        /* Estilo para el menú lateral de categorías */
-        #categories-list .list-group-item {
-            border-radius: 0;
-            border-left: 3px solid transparent;
-            transition: all 0.2s;
-        }
-
-        #categories-list .list-group-item:hover {
-            background-color: rgba(0, 0, 0, 0.04);
-        }
-
-        #categories-list .list-group-item.active {
-            border-left: 3px solid var(--accent-color);
-            background-color: rgba(0, 113, 227, 0.1);
-            color: var(--accent-color);
-            font-weight: 500;
-        }
-
-        /* Destacar el producto que se acaba de añadir */
-        @keyframes highlightRow {
-            0% {
-                background-color: rgba(0, 113, 227, 0.2);
-            }
-
-            100% {
-                background-color: transparent;
-            }
-        }
-
-        .highlight-row {
-            animation: highlightRow 2s ease-out;
-        }
-
-
-        .product-badge {
-            font-size: 0.7rem;
-            padding: 0.3em 0.7em;
-            font-weight: 500;
-            border-radius: 20px;
-        }
-
-        .order-item {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .toast-container {
+        /* Drawer overlay */
+        .sidebar-overlay {
+            display: none;
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1050;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.13);
+            backdrop-filter: blur(2px);
+            z-index: 1999;
+            transition: opacity 0.3s;
         }
 
-        .page-title {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
+        .sidebar.open~.sidebar-overlay {
+            display: block;
         }
 
-        .page-title i {
-            margin-right: 12px;
-            opacity: 0.8;
+        /* Mejoras para responsive */
+        @media (max-width: 991px) {
+            .sidebar {
+                min-width: 210px;
+            }
+
+            .sidebar-collapsed {
+                min-width: 0;
+                width: 0;
+            }
+
+            .main-content {
+                padding-left: 0;
+            }
         }
 
-        .stats-card {
-            padding: 20px;
-            text-align: center;
-            min-height: 120px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        @media (max-width: 768px) {
+            .sidebar {
+                min-width: 180px;
+            }
         }
 
-        .stats-card h2 {
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .stats-card p {
-            color: var(--secondary-text);
-            margin: 0;
-            font-size: 14px;
-        }
-
-        /* Estilo para modo oscuro */
-        body.dark-mode {
-            --bg-color: #1d1d1f;
-            --card-bg: #2c2c2e;
-            --text-color: #f5f5f7;
-            --secondary-text: #aeaeb2;
-            --border-color: #3a3a3c;
-        }
-
-        body.dark-mode .macos-navbar {
-            background-color: rgba(29, 29, 31, 0.85);
-            border-color: var(--border-color);
-        }
-
-        body.dark-mode .macos-card {
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-
-        body.dark-mode .form-control,
-        body.dark-mode .form-select {
-            background-color: #3a3a3c;
-            border-color: #4a4a4c;
-            color: #f5f5f7;
-        }
-
-        body.dark-mode .text-muted {
-            color: #aeaeb2 !important;
-        }
-
-        .product-card {
-            transition: all 0.2s ease-in-out;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+        /* Tarjeta macOS */
+        .macos-card {
             background: var(--card-bg);
-            padding: 16px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border-radius: 18px;
+            box-shadow: 0 1px 6px 0 rgba(60, 60, 67, 0.06);
+            border: 1px solid var(--border-color);
+            transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
+            padding: 1.5rem 1.2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
         }
 
-        .product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        .macos-card:hover {
+            box-shadow: 0 4px 24px 0 rgba(0, 113, 227, 0.10);
             border-color: var(--accent-color);
         }
 
-        .product-name {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 160px;
-            font-weight: 500;
-            font-size: 1rem;
-            margin-bottom: 6px;
-            color: var(--text-color);
-        }
-
-        .product-card .description {
-            height: 40px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            margin-bottom: 10px;
-        }
-
-        .product-card .price {
-            font-size: 1.1rem;
-            color: var(--accent-color);
-        }
-
-        .product-card .action-buttons {
-            margin-top: 10px;
-        }
-
-        /* Search and filter styles */
-        .search-container {
-            margin-bottom: 20px;
-        }
-
-        .search-container .input-group {
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .search-container .input-group-text {
-            background-color: transparent;
-            border-right: none;
-        }
-
-        .search-container input.form-control {
-            border-left: none;
-            padding-left: 0;
-        }
-
-        /* Category tabs styling */
-        .macos-card .card-header {
-            padding: 15px 20px;
-            border-bottom: none;
-        }
-
-        .nav-tabs .nav-link {
-            border: none;
-            border-bottom: 2px solid transparent;
-            padding: 10px 20px;
-            color: var(--secondary-text);
-            transition: all 0.3s;
-            font-weight: 500;
-            margin-right: 5px;
-        }
-
-        .nav-tabs .nav-link:hover {
-            border-bottom: 2px solid var(--border-color);
-            color: var(--text-color);
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-
-        .nav-tabs .nav-link.active {
-            color: var(--accent-color);
-            font-weight: 600;
-            border-bottom: 2px solid var(--accent-color);
-            background: transparent;
-        }
-
-        /* Order items table */
-        .table {
-            margin-bottom: 0;
-        }
-
-        .table> :not(caption)>*>* {
-            padding: 0.8rem 1.2rem;
-        }
-
-        .table>thead {
-            background-color: rgba(0, 0, 0, 0.02);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .table>thead th {
-            font-weight: 600;
-            color: var(--text-color);
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.5px;
-        }
-
-        .table tbody td {
-            vertical-align: middle;
-        }
-
-        .table tfoot {
-            font-weight: bold;
-            background-color: rgba(0, 0, 0, 0.01);
-        }
-
-        /* Badge styling */
-        .badge {
-            padding: 6px 12px;
-            font-weight: 500;
-            border-radius: 20px;
-        }
-
-        /* Card and button styling */
-        .macos-card {
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            margin-bottom: 25px;
-            overflow: hidden;
-        }
-
-        .macos-card .card-body {
-            padding: 20px;
-        }
-
+        /* Botón macOS */
         .macos-btn {
             border-radius: 8px;
             font-weight: 500;
-            padding: 8px 16px;
-            transition: all 0.2s;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.03);
+            border: none;
+            background: #f0f4fa;
+            color: var(--accent-color);
+        }
+
+        .macos-btn:hover,
+        .macos-btn:focus {
+            background: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 2px 8px 0 rgba(0, 113, 227, 0.10);
         }
 
         .macos-btn-primary {
             background: var(--accent-color);
-            border-color: var(--accent-color);
+            color: #fff;
         }
 
-        .macos-btn-primary:hover {
+        .macos-btn-primary:hover,
+        .macos-btn-primary:focus {
             background: var(--accent-color-dark);
-            border-color: var(--accent-color-dark);
-            transform: translateY(-1px);
+            color: #fff;
         }
 
-        /* Product grid layout */
-        .row-cols-2>.col,
-        .row-cols-md-3>.col {
-            padding: 10px;
-        }
-
-        /* Animation for order items */
-        @keyframes itemHighlight {
-            0% {
-                background-color: rgba(var(--bs-primary-rgb), 0.1);
-            }
-
-            100% {
-                background-color: transparent;
-            }
-        }
-
-        .new-item {
-            animation: itemHighlight 2s ease;
-        }
-
-        /* Order notes styling */
-        .order-notes {
-            background-color: rgba(0, 0, 0, 0.01);
-            padding: 16px;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-
-        #order-notes-view {
-            background-color: rgba(255, 255, 255, 0.5);
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-
-        /* Quantity controls */
-        .quantity-btn {
-            width: 38px;
-            height: 38px;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        /* Modals */
-        .modal-content {
-            border-radius: 12px;
-            border: none;
-            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
-        }
-
-        .modal-header {
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 18px 24px;
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
-
-        .modal-footer {
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 16px 24px;
-        }
-
-        /* Toast notifications */
-        .toast {
-            background-color: white;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            border: none;
-            border-radius: 10px;
-        }
-
-        .toast-header {
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            background-color: transparent;
-        }
-
-        /* Status badges */
-        .badge.bg-info {
-            background-color: #0ea5e9 !important;
-            color: white;
-        }
-
-        .badge.bg-success {
-            background-color: #10b981 !important;
-        }
-
-        .badge.bg-secondary {
-            background-color: #6b7280 !important;
-        }
-
-        .badge.bg-danger {
-            background-color: #ef4444 !important;
-        }
-
-        .badge.bg-warning {
-            background-color: #f59e0b !important;
-        }
-
-        /* Indicators */
-        .htmx-indicator {
-            display: none;
-        }
-
-        .htmx-request .htmx-indicator {
-            display: inline-block;
-        }
-
-        .htmx-request.htmx-indicator {
-            display: inline-block;
-        }
-
-        /* Table for listing categories */
-        .list-group-item {
-            border-color: var(--border-color);
-            padding: 12px 20px;
-            transition: all 0.2s;
-        }
-
-        .list-group-item:hover {
-            background-color: rgba(0, 0, 0, 0.01);
-        }
-
-        .list-group-item.active,
-        .list-group-item.active:hover {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            color: white;
-        }
-
-        .list-group-item a {
-            color: var(--text-color);
-            text-decoration: none;
+        /* Badges y tablas */
+        .badge {
+            border-radius: 6px;
+            font-size: 0.95em;
+            padding: 0.45em 0.8em;
             font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: background 0.2s, color 0.2s;
         }
 
-        /* Form controls */
+        .table {
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--card-bg);
+            box-shadow: 0 1px 8px 0 rgba(60, 60, 67, 0.04);
+        }
+
+        .table th,
+        .table td {
+            border-top: none;
+            vertical-align: middle;
+        }
+
+        .table thead th {
+            background: #f5f5f7;
+            color: var(--secondary-text);
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .table-hover tbody tr:hover {
+            background: rgba(0, 113, 227, 0.04);
+            transition: background 0.2s;
+        }
+
+        /* Inputs */
         .form-control,
         .form-select {
-            padding: 10px 15px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
-            transition: all 0.2s;
+            background: #f8f9fb;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .form-control:focus,
         .form-select:focus {
             border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.2);
+            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.10);
         }
 
-        .form-label {
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-color);
+        /* Animaciones */
+        .macos-card,
+        .macos-btn,
+        .table,
+        .badge {
+            transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
         }
 
-        /* Mejoras para responsive */
-        @media (max-width: 768px) {
-            .product-item {
-                flex: 0 0 50%;
+        /* Mejor separación visual para sidebar y header */
+        .macos-appbar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px 0 rgba(60, 60, 67, 0.04);
+            padding: 0.7rem 0;
+            z-index: 1050;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 64px;
+            min-height: 64px;
+        }
+
+        .macos-appbar .container {
+            padding-left: 2.2rem;
+            padding-right: 1.5rem;
+        }
+
+        .macos-appbar .h4 {
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: var(--accent-color);
+            margin-left: 0.2rem;
+        }
+
+        .macos-appbar .bi-cup-hot {
+            color: var(--accent-color);
+            font-size: 1.6rem;
+        }
+
+        /* Mejor separación visual del contenido */
+        .main-content {
+            margin-left: 220px;
+            padding-top: 80px;
+            padding-left: 2.2rem;
+            padding-right: 2.2rem;
+            padding-bottom: 2.2rem;
+            min-height: calc(100vh - 64px);
+            box-sizing: border-box;
+            transition: margin 0.2s, padding 0.2s;
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 991px) {
+            .macos-appbar {
+                height: 56px;
+                min-height: 56px;
             }
 
-            .product-name {
-                max-width: 120px;
+            .sidebar {
+                top: 0;
+                height: 100vh;
+                width: 220px;
+                min-width: 210px;
             }
 
-            .macos-card .card-body {
-                padding: 15px;
+            .main-content {
+                margin-left: 0;
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-top: 70px;
+                min-height: calc(100vh - 56px);
             }
-
-            .table> :not(caption)>*>* {
-                padding: 0.7rem 0.8rem;
-            }
-        }
-
-        /* Dark mode adjustments */
-        body.dark-mode .product-card {
-            background-color: rgba(30, 30, 30, 0.7);
-            border-color: rgba(60, 60, 60, 0.8);
-        }
-
-        body.dark-mode .nav-tabs .nav-link.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
-        }
-
-        body.dark-mode .table>thead {
-            background-color: rgba(40, 40, 40, 0.5);
-        }
-
-        body.dark-mode .table tfoot {
-            background-color: rgba(40, 40, 40, 0.3);
-        }
-
-        body.dark-mode #order-notes-view {
-            background-color: rgba(40, 40, 40, 0.5);
-        }
-
-        body.dark-mode .list-group-item {
-            background-color: rgba(30, 30, 30, 0.7);
-            border-color: rgba(60, 60, 60, 0.8);
         }
     </style>
 </head>
 
 <body>
-    <!-- Barra de navegación superior -->
-    <nav class="macos-navbar sticky-top">
+    <!-- AppBar minimalista -->
+    <nav class="macos-appbar sticky-top">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="/" class="text-decoration-none">
-                    <h1 class="h4 m-0 d-flex align-items-center">
-                        <i class="bi bi-cup-hot me-2"></i>
-                        <span>Resto</span>
-                    </h1>
-                </a>
-                <div>
-                    <span class="text-secondary me-3">{{.CurrentTime}}</span>
-                    <button class="btn macos-btn" id="theme-toggle">
-                        <i class="bi bi-moon"></i>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0" style="min-width:220px;">
+                    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <a href="/" class="text-decoration-none d-flex align-items-center" style="padding-left:0.2rem;">
+                        <h1 class="h4 m-0 d-flex align-items-center">
+                            <i class="bi bi-cup-hot me-2"></i>
+                            <span>Resto</span>
+                        </h1>
+                    </a>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-shrink-1">
+                    <span class="text-secondary d-none d-md-inline">{{.CurrentTime}}</span>
+                    <button class="btn macos-btn" id="theme-toggle" aria-label="Cambiar tema" type="button">
+                        <i id="theme-icon" class="bi"></i>
                     </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="row">
-            <!-- Menú lateral -->
-            <div class="col-md-3">
-                <div class="sidebar">
-                    <ul class="sidebar-menu">
-                        <li><a href="/" class="{{if eq .ActivePage " dashboard"}}active{{end}}">
-                                <i class="bi bi-speedometer2"></i> Panel
-                            </a></li>
-                        <li><a href="/orders" class="{{if eq .ActivePage " orders"}}active{{end}}">
-                                <i class="bi bi-receipt"></i> Órdenes
-                            </a></li>
-                        <li><a href="/menu" class="{{if eq .ActivePage " menu"}}active{{end}}">
-                                <i class="bi bi-journal-text"></i> Menú
-                            </a></li>
-                    </ul>
+    <!-- Drawer lateral refinado -->
+    <nav class="sidebar" id="sidebarDrawer">
+        <ul class="sidebar-menu">
+            <li><a href="/" class="{{if eq .ActivePage " dashboard"}}active{{end}}">
+                    <i class="bi bi-speedometer2"></i> Panel
+                </a></li>
+            <li><a href="/orders" class="{{if eq .ActivePage " orders"}}active{{end}}">
+                    <i class="bi bi-receipt"></i> Órdenes
+                </a></li>
+            <li><a href="/menu" class="{{if eq .ActivePage " menu"}}active{{end}}">
+                    <i class="bi bi-journal-text"></i> Menú
+                </a></li>
+        </ul>
+        <div class="sidebar-heading">Administración</div>
+        <ul class="sidebar-menu">
+            <li><a href="/kitchen" class="{{if eq .ActivePage " kitchen"}}active{{end}}">
+                    <i class="bi bi-fire"></i> Cocina
+                </a></li>
+            <li><a href="/tables" class="{{if eq .ActivePage " tables"}}active{{end}}">
+                    <i class="bi bi-grid-3x3"></i> Mesas
+                </a></li>
+            <li><a href="/history" class="{{if eq .ActivePage " history"}}active{{end}}">
+                    <i class="bi bi-clock-history"></i> Historial
+                </a></li>
+            <li><a href="/settings" class="{{if eq .ActivePage " settings"}}active{{end}}">
+                    <i class="bi bi-gear"></i> Configuración
+                </a></li>
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-                    <div class="sidebar-heading">Administración</div>
-                    <ul class="sidebar-menu">
-                        <li><a href="/kitchen" class="{{if eq .ActivePage " kitchen"}}active{{end}}">
-                                <i class="bi bi-fire"></i> Cocina
-                            </a></li>
-                        <li><a href="/tables" class="{{if eq .ActivePage " tables"}}active{{end}}">
-                                <i class="bi bi-grid-3x3"></i> Mesas
-                            </a></li>
-                        <li><a href="/history" class="{{if eq .ActivePage " history"}}active{{end}}">
-                                <i class="bi bi-clock-history"></i> Historial
-                            </a></li>
-                        <li><a href="/settings" class="{{if eq .ActivePage " settings"}}active{{end}}">
-                                <i class="bi bi-gear"></i> Configuración
-                            </a></li>
-                    </ul>
-
-                    <div class="mt-5 p-3 macos-card">
-                        <p class="mb-2 text-secondary">Nueva Orden</p>
-                        <form hx-post="/orders" hx-swap="none">
-                            <div class="mb-3">
-                                <input type="number" class="form-control" name="table_num" min="1" required
-                                    placeholder="# Mesa">
-                            </div>
-                            <button type="submit" class="btn macos-btn macos-btn-primary w-100">
-                                <i class="bi bi-plus-circle me-2"></i>Crear Orden
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contenido principal -->
-            <div class="col-md-9">
-                <main>
-                    {{embed}}
-                </main>
-            </div>
-        </div>
+    <!-- Contenido principal -->
+    <div class="main-content">
+        <main>
+            {{embed}}
+        </main>
     </div>
 
     <!-- Contenedor para mensajes toast -->
@@ -724,15 +695,60 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Función para manejar el tema oscuro
-        document.getElementById('theme-toggle').addEventListener('click', function () {
-            document.body.classList.toggle('dark-mode');
-            const icon = this.querySelector('i');
-            if (icon.classList.contains('bi-moon')) {
-                icon.classList.replace('bi-moon', 'bi-sun');
+        // Drawer lateral responsive
+        const sidebar = document.getElementById('sidebarDrawer');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        sidebarToggle.addEventListener('click', function () {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+        });
+        sidebarOverlay.addEventListener('click', function () {
+            sidebar.classList.remove('open');
+            sidebarOverlay.style.display = 'none';
+        });
+        // Cerrar drawer al navegar (en móvil)
+        document.querySelectorAll('.sidebar-menu a').forEach(link => {
+            link.addEventListener('click', function () {
+                if (window.innerWidth < 992) {
+                    sidebar.classList.remove('open');
+                    sidebarOverlay.style.display = 'none';
+                }
+            });
+        });
+
+        // Tema oscuro real
+        function setTheme(dark) {
+            if (dark) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('theme-icon').className = 'bi bi-sun';
             } else {
-                icon.classList.replace('bi-sun', 'bi-moon');
+                document.body.classList.remove('dark-mode');
+                document.getElementById('theme-icon').className = 'bi bi-moon';
             }
+        }
+        // Guardar preferencia en localStorage
+        function saveThemePref(dark) {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+        // Leer preferencia
+        function getThemePref() {
+            return localStorage.getItem('theme');
+        }
+        // Inicializar tema al cargar
+        (function () {
+            let pref = getThemePref();
+            if (!pref) {
+                // Detectar preferencia del sistema
+                pref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            setTheme(pref === 'dark');
+        })();
+        // Cambiar tema al hacer click
+        document.getElementById('theme-toggle').addEventListener('click', function () {
+            const isDark = document.body.classList.toggle('dark-mode');
+            setTheme(isDark);
+            saveThemePref(isDark);
         });
 
         // Función para mostrar notificaciones

@@ -1,14 +1,14 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="m-0">Lista de Productos</h5>
     <div>
-        <select class="form-select form-select-sm d-inline-block w-auto" name="sort" hx-get="/products"
+        <select class="form-select form-select-sm d-inline-block w-auto macos-btn" name="sort" hx-get="/products"
             hx-target="#productList"
             hx-include="[name='category'],[name='search'],[name='availability'],[name='order']">
             <option value="name" {{if eq .Filters.SortBy "name" }}selected{{end}}>Nombre</option>
             <option value="price" {{if eq .Filters.SortBy "price" }}selected{{end}}>Precio</option>
             <option value="category" {{if eq .Filters.SortBy "category" }}selected{{end}}>Categoría</option>
         </select>
-        <select class="form-select form-select-sm d-inline-block w-auto ms-2" name="order" hx-get="/products"
+        <select class="form-select form-select-sm d-inline-block w-auto ms-2 macos-btn" name="order" hx-get="/products"
             hx-target="#productList" hx-include="[name='category'],[name='search'],[name='availability'],[name='sort']">
             <option value="asc" {{if eq .Filters.SortOrder "asc" }}selected{{end}}>Ascendente</option>
             <option value="desc" {{if eq .Filters.SortOrder "desc" }}selected{{end}}>Descendente</option>
@@ -18,58 +18,55 @@
 
 <form id="bulkActionForm" hx-post="/products/bulk" hx-target="#productList">
     <div class="mb-3">
-        <select name="action" class="form-select form-select-sm d-inline-block w-auto">
+        <select name="action" class="form-select form-select-sm d-inline-block w-auto macos-btn">
             <option value="">Acciones masivas</option>
             <option value="enable">Habilitar</option>
             <option value="disable">Deshabilitar</option>
             <option value="delete">Eliminar</option>
         </select>
-        <button type="submit" class="btn btn-sm btn-secondary ms-2">Aplicar</button>
+        <button type="submit" class="btn btn-sm macos-btn ms-2">Aplicar</button>
     </div>
-
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th><input type="checkbox" id="selectAll"></th>
-                <th>Nombre</th>
-                <th>Categoría</th>
-                <th>Precio</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Products}}
-            <tr>
-                <td><input type="checkbox" name="product_ids" value="{{.ID}}"></td>
-                <td>{{.Name}}</td>
-                <td>{{.Category}}</td>
-                <td>${{printf "%.2f" .Price}}</td>
-                <td>
-                    {{if .IsAvailable}}
-                    <span class="badge bg-success">Disponible</span>
-                    {{else}}
-                    <span class="badge bg-danger">No disponible</span>
-                    {{end}}
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" hx-get="/products/{{.ID}}/edit"
-                        hx-target="#modalContent">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" hx-delete="/products/{{.ID}}" hx-target="#productList"
-                        hx-confirm="¿Eliminar este producto?">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            {{else}}
-            <tr>
-                <td colspan="6" class="text-center py-4">No se encontraron productos</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Products}}
+                <tr>
+                    <td><input type="checkbox" name="product_ids" value="{{.ID}}"></td>
+                    <td>{{.Name}}</td>
+                    <td>{{.Category}}</td>
+                    <td>${{printf "%.2f" .Price}}</td>
+                    <td>
+                        {{if .IsAvailable}}
+                        <span class="badge bg-success">Disponible</span>
+                        {{else}}
+                        <span class="badge bg-danger">No disponible</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm macos-btn macos-btn-primary" hx-get="/products/{{.ID}}/edit"><i
+                                class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm macos-btn btn-outline-danger" hx-delete="/products/{{.ID}}"
+                            hx-target="#productList"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="6" class="text-center py-4">No se encontraron productos</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
 </form>
 
 <script>

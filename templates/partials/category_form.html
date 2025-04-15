@@ -6,14 +6,13 @@
     <div class="modal-body">
         <div class="mb-3">
             <label for="name" class="form-label">Nombre de la categoría</label>
-            <input type="text" class="form-control" id="name" name="name" required>
+            <input type="text" class="form-control macos-card" id="name" name="name" required autocomplete="off">
         </div>
-
         <div class="mb-3">
             <h6>Categorías actuales</h6>
-            <ul class="list-group">
+            <ul class="list-group list-group-flush macos-card">
                 {{range .Categories}}
-                <li class="list-group-item">{{.}}</li>
+                <li class="list-group-item bg-transparent">{{.}}</li>
                 {{end}}
             </ul>
         </div>

@@ -1,41 +1,41 @@
-<div class="order-summary">
-    <h6 class="mb-3">Mesa {{.TableNum}}</h6>
-
-    <table class="table table-sm">
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Cant.</th>
-                <th class="text-end">Precio</th>
-                <th class="text-end">Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Items}}
-            <tr>
-                <td>
-                    <strong>{{.Product.Name}}</strong>
-                    {{if .Notes}}
-                    <small class="text-muted d-block">{{.Notes}}</small>
-                    {{end}}
-                </td>
-                <td>{{.Quantity}}</td>
-                <td class="text-end">${{printf "%.2f" .Product.Price}}</td>
-                <td class="text-end">${{printf "%.2f" (multiply .Product.Price .Quantity)}}</td>
-            </tr>
-            {{end}}
-        </tbody>
-        <tfoot class="table-group-divider">
-            <tr>
-                <th colspan="3" class="text-end">Total:</th>
-                <th class="text-end">${{printf "%.2f" .Total}}</th>
-            </tr>
-        </tfoot>
-    </table>
-
-    <div class="mb-3">
-        <label for="order-notes" class="form-label">Notas adicionales</label>
-        <textarea class="form-control" id="order-notes" name="notes" rows="2"
-            placeholder="Instrucciones especiales para la cocina"></textarea>
-    </div>
+<div class="modal-header">
+    <h5 class="modal-title">Confirmar Orden</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
 </div>
+<div class="modal-body">
+    <div class="macos-card mb-3">
+        <h6 class="mb-2">Resumen de la Orden</h6>
+        <ul class="list-group list-group-flush">
+            {{range .Items}}
+            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                <span>{{.Quantity}} × {{.Product.Name}}</span>
+                <span class="fw-bold">${{printf "%.2f" .Subtotal}}</span>
+            </li>
+            {{end}}
+        </ul>
+        <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-2">
+            <span class="fw-bold">Total</span>
+            <span class="fw-bold text-primary">${{printf "%.2f" .Total}}</span>
+        </div>
+    </div>
+    {{if .Notes}}
+    <div class="alert alert-light">
+        <i class="bi bi-bookmark me-2"></i>{{.Notes}}
+    </div>
+    {{end}}
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <button type="button" class="btn macos-btn macos-btn-primary" id="confirmOrderBtn">
+        <i class="bi bi-check-circle me-2"></i>Confirmar Orden
+    </button>
+</div>
+<script>
+    document.getElementById('confirmOrderBtn').addEventListener('click', function () {
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Confirmando...';
+        // Aquí deberías disparar el submit real vía HTMX o AJAX
+        // Por ejemplo:
+        // htmx.ajax('POST', '/orders/confirm', {target: 'body'});
+    });
+</script>
