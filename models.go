@@ -38,6 +38,12 @@ type Order struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+
+	// Nuevos campos para tracking avanzado
+	SentToKitchenAt    *time.Time `json:"sent_to_kitchen_at"`
+	CookingCompletedAt *time.Time `json:"cooking_completed_at"`
+	DeliveredAt        *time.Time `json:"delivered_at"`
+	CompletedAt        *time.Time `json:"completed_at"`
 }
 
 // OrderItem representa un producto en una orden
@@ -52,6 +58,7 @@ type OrderItem struct {
 	CookingStarted  *time.Time `json:"cooking_started"`
 	CookingFinished *time.Time `json:"cooking_finished"`
 	CookingTime     int        `json:"cooking_time_seconds" gorm:"default:0"` // Tiempo en segundos
+	DeliveredAt     *time.Time `json:"delivered_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 }

@@ -311,6 +311,7 @@ func main() {
 	app.Put("/order/item/:id", UpdateOrderItem)
 	app.Delete("/order/:id/item/:itemId", RemoveItemFromOrder)
 	app.Put("/order/:id/notes", UpdateOrderNotes)
+	app.Get("/orders/metrics", GetOrderMetrics)
 
 	// Rutas de Cocina
 	app.Get("/kitchen", KitchenHandler)

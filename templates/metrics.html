@@ -1,0 +1,68 @@
+{{define "metrics"}}
+<div class="mb-4">
+    <h1 class="page-title"><i class="bi bi-graph-up"></i> Métricas</h1>
+</div>
+
+<div class="macos-card p-4 mb-4">
+    <h5 class="mb-3">Resumen de métricas</h5>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="macos-card stats-card">
+                <h2>{{.TotalOrders}}</h2>
+                <p>Órdenes totales</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="macos-card stats-card">
+                <h2>${{printf "%.2f" .TotalSales}}</h2>
+                <p>Ventas totales</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="macos-card stats-card">
+                <h2>{{.TopProduct}}</h2>
+                <p>Producto más vendido</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="macos-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0">Órdenes por día</h5>
+        <button class="btn btn-sm btn-outline-secondary" id="downloadCSV">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Descargar CSV
+        </button>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="metrics-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Órdenes</th>
+                    <th>Ventas</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .MetricsByDay}}
+                <tr>
+                    <td>{{.Date}}</td>
+                    <td>{{.OrderCount}}</td>
+                    <td>${{printf "%.2f" .Sales}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.getElementById('downloadCSV')?.addEventListener('click', function () {
+        // Simulación de descarga CSV
+        showToast('Generando archivo CSV...', 'info');
+        setTimeout(() => {
+            showToast('Archivo CSV generado correctamente', 'success');
+        }, 1000);
+    });
+</script>
+{{end}}

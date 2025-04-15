@@ -27,8 +27,19 @@
                         {{if $item.Notes}}<br><small class="text-muted">{{$item.Notes}}</small>{{end}}
                         {{if $item.CookingStarted}}
                         <div>
+                            {{if or $.ReadOnly $item.IsReady}}
+                            {{if and $item.CookingFinished (gt $item.CookingTime 0)}}
+                            <span class="badge bg-info text-white">
+                                <i class='bi bi-hourglass-split me-1'></i>{{formatDuration (multiply 1.0
+                                $item.CookingTime)}}
+                            </span>
+                            {{else}}
+                            <span class="badge bg-secondary">-</span>
+                            {{end}}
+                            {{else}}
                             <span id="cooking-timer-{{$item.ID}}" data-start="{{formatTimeJS $item.CookingStarted}}"
                                 class="badge bg-light text-dark"></span>
+                            {{end}}
                         </div>
                         {{end}}
                     </td>
@@ -86,6 +97,7 @@
         </table>
     </div>
 </div>
+{{if not .ReadOnly}}
 <script>
     function updateCookingTimers() {
         document.querySelectorAll("[id^='cooking-timer-']").forEach(timer => {
@@ -113,3 +125,4 @@
     setInterval(updateCookingTimers, 1000);
     document.addEventListener('DOMContentLoaded', updateCookingTimers);
 </script>
+{{end}}

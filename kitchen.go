@@ -59,7 +59,11 @@ func ToggleItemStatus(c *fiber.Ctx) error {
 
 		// Si no tenía tiempo de inicio, registrarlo
 		if item.CookingStarted == nil {
-			item.CookingStarted = &now
+			if item.CookingFinished != nil {
+				item.CookingStarted = item.CookingFinished
+			} else {
+				item.CookingStarted = &now
+			}
 		}
 
 		// Registrar tiempo de finalización
@@ -68,12 +72,21 @@ func ToggleItemStatus(c *fiber.Ctx) error {
 		// Calcular tiempo de cocción total en segundos
 		if item.CookingStarted != nil {
 			cookingTime := int(now.Sub(*item.CookingStarted).Seconds())
+			if cookingTime < 0 {
+				cookingTime = 0
+			}
 			item.CookingTime = cookingTime
+		}
+
+		if item.DeliveredAt == nil {
+			item.DeliveredAt = &now
 		}
 	} else {
 		// El producto está pasando de "listo" a "no listo"
 		item.IsReady = false
 		item.CookingFinished = nil // Remover tiempo de finalización
+		item.CookingTime = 0
+		item.DeliveredAt = nil
 	}
 
 	db.Save(&item)
@@ -96,6 +109,23 @@ func ToggleItemStatus(c *fiber.Ctx) error {
 	message := "Estado actualizado"
 	if itemsCount > 0 && itemsCount == readyItemsCount {
 		message = "¡Todos los productos están listos! Puede completar la orden."
+	}
+
+	// Si todos los ítems están listos, marcar CookingCompletedAt en la orden
+	var allItems []OrderItem
+	db.Where("order_id = ?", item.OrderID).Find(&allItems)
+	allReady := true
+	for _, it := range allItems {
+		if !it.IsReady {
+			allReady = false
+			break
+		}
+	}
+	if allReady {
+		if order.CookingCompletedAt == nil {
+			order.CookingCompletedAt = &now
+			db.Save(&order)
+		}
 	}
 
 	c.Set("HX-Trigger", `{"showToast": "`+message+`"}`)
@@ -141,7 +171,39 @@ func KitchenCompleteOrder(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
 	}
 
+	now := time.Now()
+	// Refuerzo: asegurar que todos los ítems tengan CookingFinished, CookingTime y DeliveredAt
+	var items []OrderItem
+	db.Where("order_id = ?", order.ID).Find(&items)
+	for _, item := range items {
+		if !item.IsReady {
+			item.IsReady = true
+			if item.CookingStarted == nil {
+				item.CookingStarted = &now
+			}
+			item.CookingFinished = &now
+			cookingTime := int(now.Sub(*item.CookingStarted).Seconds())
+			if cookingTime < 0 {
+				cookingTime = 0
+			}
+			item.CookingTime = cookingTime
+		}
+		if item.DeliveredAt == nil {
+			item.DeliveredAt = &now
+		}
+		db.Save(&item)
+	}
+	if order.CookingCompletedAt == nil {
+		order.CookingCompletedAt = &now
+	}
 	order.Status = "completed"
+	order.UpdatedAt = now
+	if order.CompletedAt == nil {
+		order.CompletedAt = &now
+	}
+	if order.DeliveredAt == nil {
+		order.DeliveredAt = &now
+	}
 	db.Save(&order)
 	log.Printf("Orden #%d marcada como completada", id)
 

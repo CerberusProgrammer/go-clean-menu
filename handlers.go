@@ -171,3 +171,76 @@ func GetProductsByCategory(c *fiber.Ctx) error {
 		"Products": products,
 	}, "")
 }
+
+// GetOrderMetrics muestra métricas de tiempos de órdenes y productos
+func GetOrderMetrics(c *fiber.Ctx) error {
+	// Órdenes completadas en el último mes
+	var orders []Order
+	db.Preload("Items").Where("status = ? AND completed_at IS NOT NULL", "completed").Order("completed_at desc").Limit(50).Find(&orders)
+
+	// Métricas globales
+	totalOrders := len(orders)
+	var sumTaking, sumCooking, sumDelivery, sumTotal float64
+	var productTimes = make(map[string][]float64) // nombre producto -> tiempos
+
+	for _, o := range orders {
+		if o.SentToKitchenAt != nil && o.CreatedAt.Before(*o.SentToKitchenAt) {
+			sumTaking += o.SentToKitchenAt.Sub(o.CreatedAt).Seconds()
+		}
+		if o.CookingCompletedAt != nil && o.SentToKitchenAt != nil && o.CookingCompletedAt.After(*o.SentToKitchenAt) {
+			sumCooking += o.CookingCompletedAt.Sub(*o.SentToKitchenAt).Seconds()
+		}
+		if o.DeliveredAt != nil && o.CookingCompletedAt != nil && o.DeliveredAt.After(*o.CookingCompletedAt) {
+			sumDelivery += o.DeliveredAt.Sub(*o.CookingCompletedAt).Seconds()
+		}
+		if o.CompletedAt != nil {
+			sumTotal += o.CompletedAt.Sub(o.CreatedAt).Seconds()
+		}
+		for _, item := range o.Items {
+			if item.CookingTime > 0 && item.Product.Name != "" {
+				productTimes[item.Product.Name] = append(productTimes[item.Product.Name], float64(item.CookingTime))
+			}
+		}
+	}
+
+	// Promedios
+	avgTaking := 0.0
+	avgCooking := 0.0
+	avgDelivery := 0.0
+	avgTotal := 0.0
+	if totalOrders > 0 {
+		avgTaking = sumTaking / float64(totalOrders)
+		avgCooking = sumCooking / float64(totalOrders)
+		avgDelivery = sumDelivery / float64(totalOrders)
+		avgTotal = sumTotal / float64(totalOrders)
+	}
+
+	// Promedio por producto
+	var productAverages []struct {
+		Name  string
+		Avg   float64
+		Count int
+	}
+	for name, times := range productTimes {
+		sum := 0.0
+		for _, t := range times {
+			sum += t
+		}
+		productAverages = append(productAverages, struct {
+			Name  string
+			Avg   float64
+			Count int
+		}{name, sum / float64(len(times)), len(times)})
+	}
+
+	return c.Render("metrics", fiber.Map{
+		"Title":           "Métricas",
+		"ActivePage":      "metrics",
+		"AvgTaking":       avgTaking,
+		"AvgCooking":      avgCooking,
+		"AvgDelivery":     avgDelivery,
+		"AvgTotal":        avgTotal,
+		"ProductAverages": productAverages,
+		"Orders":          orders,
+	})
+}

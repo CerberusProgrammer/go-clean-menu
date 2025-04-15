@@ -252,10 +252,46 @@ func CompleteOrder(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Solo se pueden completar órdenes en proceso")
 	}
 
+	// Refuerzo: asegurar que todos los ítems tengan CookingFinished y CookingTime
+	var items []OrderItem
+	db.Where("order_id = ?", order.ID).Find(&items)
+	now := time.Now()
+	allReady := true
+	for _, item := range items {
+		if !item.IsReady {
+			item.IsReady = true
+			if item.CookingStarted == nil {
+				item.CookingStarted = &now
+			}
+			item.CookingFinished = &now
+			cookingTime := int(now.Sub(*item.CookingStarted).Seconds())
+			if cookingTime < 0 {
+				cookingTime = 0
+			}
+			item.CookingTime = cookingTime
+		}
+		if item.DeliveredAt == nil {
+			item.DeliveredAt = &now
+		}
+		db.Save(&item)
+		if !item.IsReady {
+			allReady = false
+		}
+	}
+	// Si todos los ítems están listos, marcar CookingCompletedAt
+	if allReady && order.CookingCompletedAt == nil {
+		order.CookingCompletedAt = &now
+	}
 	// Marcar la orden como completada
 	log.Printf("Marcando orden #%d como completada", id)
 	order.Status = "completed"
-	order.UpdatedAt = time.Now()
+	order.UpdatedAt = now
+	if order.CompletedAt == nil {
+		order.CompletedAt = &now
+	}
+	if order.DeliveredAt == nil {
+		order.DeliveredAt = &now
+	}
 	if err := db.Save(&order).Error; err != nil {
 		log.Printf("Error al actualizar estado de orden: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Error al completar la orden")
@@ -698,6 +734,9 @@ func ProcessOrder(c *fiber.Ctx) error {
 	// Cambiar el estado a "in_progress"
 	order.Status = "in_progress"
 	order.UpdatedAt = now
+	if order.SentToKitchenAt == nil {
+		order.SentToKitchenAt = &now
+	}
 	db.Save(&order)
 
 	// Registrar tiempo de inicio para todos los items de la orden
@@ -705,8 +744,10 @@ func ProcessOrder(c *fiber.Ctx) error {
 	db.Where("order_id = ?", id).Find(&items)
 
 	for _, item := range items {
-		item.CookingStarted = &now
-		db.Save(&item)
+		if item.CookingStarted == nil {
+			item.CookingStarted = &now
+			db.Save(&item)
+		}
 	}
 
 	// --- Notificación WebSocket ---
