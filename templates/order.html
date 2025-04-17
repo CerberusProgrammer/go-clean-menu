@@ -474,4 +474,19 @@
         if (msg.type === "order_update" && msg.payload && msg.payload.ID == {{.OrderID }}) {
         htmx.ajax('GET', '/order/{{.OrderID}}', 'body');
     }};
+
+    // WebSocket para notificaciones y refresco ultra en tiempo real en la vista de detalle de orden
+    const wsOrderDetail = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/orders');
+    wsOrderDetail.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+        if ((msg.type === "order_update" || msg.type === "kitchen_update") && msg.payload && msg.payload.ID == {{.OrderID }}) {
+        // Refresca solo la sección de ítems y progreso de la orden
+        htmx.ajax('GET', '/order/{{.OrderID}}', '#order-items');
+        htmx.ajax('GET', '/kitchen/order/{{.OrderID}}/status', '#order-progress');
+        // También refresca la cabecera de la orden para el estado
+        htmx.ajax('GET', '/order/{{.OrderID}}', '.order-status-bar');
+        showToast('¡Actualización en tiempo real en la orden!', 'info');
+    }
+    };
 </script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
