@@ -49,6 +49,10 @@
                             <i class="bi bi-printer"></i>
                         </button>
                         {{end}}
+                        <button class="btn btn-sm btn-outline-info" hx-get="/order/{{.ID}}" hx-target="body"
+                            hx-push-url="true">
+                            <i class="bi bi-clock-history"></i> Ver tandas
+                        </button>
                     </div>
                 </td>
             </tr>

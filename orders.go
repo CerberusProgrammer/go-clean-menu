@@ -52,23 +52,43 @@ func CreateOrder(c *fiber.Ctx) error {
 	return c.SendString("Orden creada")
 }
 
-// OrdersHandler renamed to GetOrders for consistency
-func GetOrders(c *fiber.Ctx) error {
+// OrdersHandler muestra todas las órdenes con filtros y búsqueda
+func OrdersHandler(c *fiber.Ctx) error {
+	status := c.Query("status", "active") // active, completed, cancelled, all
+	search := c.Query("search", "")
+
+	query := db.Model(&Order{})
+
+	switch status {
+	case "active":
+		query = query.Where("status IN ?", []string{"pending", "in_progress", "ready", "to_pay"})
+	case "completed":
+		query = query.Where("status = ?", "completed")
+	case "cancelled":
+		query = query.Where("status = ?", "cancelled")
+	case "all":
+		// no filter
+	default:
+		query = query.Where("status IN ?", []string{"pending", "in_progress", "ready", "to_pay"})
+	}
+
+	if search != "" {
+		query = query.Where("CAST(id AS TEXT) ILIKE ? OR CAST(table_num AS TEXT) ILIKE ? OR notes ILIKE ?", "%"+search+"%", "%"+search+"%", "%"+search+"%")
+	}
+
 	var orders []Order
-	db.Where("status IN (?)", []string{"pending", "in_progress"}).
-		Order("created_at asc").
-		Preload("Items").
-		Preload("Items.Product").
-		Find(&orders)
+	query.Order("created_at desc").Preload("Items").Preload("Items.Product").Find(&orders)
 
 	// Obtener mesas disponibles para el modal de nueva orden
 	var availableTables []Table
 	db.Where("occupied = ?", false).Order("number").Find(&availableTables)
 
 	return c.Render("orders", fiber.Map{
-		"Title":           "Órdenes Activas",
+		"Title":           "Órdenes",
 		"ActivePage":      "orders",
 		"Orders":          orders,
+		"Status":          status,
+		"Search":          search,
 		"AvailableTables": availableTables,
 	})
 }
@@ -573,27 +593,6 @@ func UpdateOrderItemQuantity(c *fiber.Ctx) error {
 	}, "")
 }
 
-// OrdersHandler muestra todas las órdenes activas
-func OrdersHandler(c *fiber.Ctx) error {
-	var orders []Order
-	db.Where("status = ?", "pending").
-		Order("created_at asc").
-		Preload("Items").         // Añadir esto para cargar los ítems
-		Preload("Items.Product"). // Añadir esto para cargar los productos relacionados
-		Find(&orders)
-
-	// Obtener mesas disponibles para el modal de nueva orden
-	var availableTables []Table
-	db.Where("occupied = ?", false).Order("number").Find(&availableTables)
-
-	return c.Render("orders", fiber.Map{
-		"Title":           "Órdenes Activas",
-		"ActivePage":      "orders",
-		"Orders":          orders,
-		"AvailableTables": availableTables,
-	})
-}
-
 // PrintOrder genera un ticket de orden
 func PrintOrder(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -764,4 +763,95 @@ func ProcessOrder(c *fiber.Ctx) error {
 	c.Set("HX-Trigger", `{"showToast": "Orden enviada a cocina correctamente"}`)
 	c.Set("HX-Redirect", "/orders")
 	return c.SendString("Orden enviada a cocina")
+}
+
+// Cambia el estado de la orden a 'ready' si todos los ítems están listos
+func SetOrderReadyIfAllItemsReady(order *Order) bool {
+	var items []OrderItem
+	db.Where("order_id = ?", order.ID).Find(&items)
+	if len(items) == 0 {
+		return false
+	}
+	for _, item := range items {
+		if !item.IsReady {
+			return false
+		}
+	}
+	if order.Status == "in_progress" {
+		order.Status = "ready"
+		order.CookingCompletedAt = ptrTime(time.Now())
+		db.Save(order)
+		return true
+	}
+	return false
+}
+
+// Endpoint para marcar una orden como 'ready' (listo para entregar)
+func SetOrderReady(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
+	}
+	var order Order
+	if result := db.First(&order, id); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
+	}
+	if order.Status != "in_progress" {
+		return c.Status(fiber.StatusBadRequest).SendString("Solo órdenes en preparación pueden marcarse como listas")
+	}
+	if SetOrderReadyIfAllItemsReady(&order) {
+		wsBroadcast <- WSMessage{Type: "order_update", Payload: order}
+		c.Set("HX-Trigger", `{"showToast": "Orden lista para entregar"}`)
+		return c.SendString("Orden lista para entregar")
+	}
+	return c.Status(fiber.StatusBadRequest).SendString("No todos los productos están listos")
+}
+
+// Endpoint para marcar una orden como 'to_pay' (por cobrar)
+func SetOrderToPay(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
+	}
+	var order Order
+	if result := db.First(&order, id); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
+	}
+	if order.Status != "ready" {
+		return c.Status(fiber.StatusBadRequest).SendString("Solo órdenes listas pueden pasar a por cobrar")
+	}
+	order.Status = "to_pay"
+	order.DeliveredAt = ptrTime(time.Now())
+	db.Save(&order)
+	wsBroadcast <- WSMessage{Type: "order_update", Payload: order}
+	c.Set("HX-Trigger", `{"showToast": "Orden entregada, por cobrar"}`)
+	return c.SendString("Orden entregada, por cobrar")
+}
+
+// Endpoint para marcar una orden como 'completed' (pagada)
+func SetOrderCompletedFromToPay(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("ID inválido")
+	}
+	var order Order
+	if result := db.First(&order, id); result.Error != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Orden no encontrada")
+	}
+	if order.Status != "to_pay" {
+		return c.Status(fiber.StatusBadRequest).SendString("Solo órdenes por cobrar pueden ser completadas")
+	}
+	order.Status = "completed"
+	order.CompletedAt = ptrTime(time.Now())
+	db.Save(&order)
+	// Liberar la mesa
+	db.Model(&Table{}).Where("number = ?", order.TableNum).Updates(map[string]interface{}{"occupied": false, "order_id": nil})
+	wsBroadcast <- WSMessage{Type: "order_update", Payload: order}
+	c.Set("HX-Trigger", `{"showToast": "Orden pagada y cerrada"}`)
+	c.Set("HX-Redirect", "/orders")
+	return c.SendString("Orden pagada y cerrada")
+}
+
+func ptrTime(t time.Time) *time.Time {
+	return &t
 }

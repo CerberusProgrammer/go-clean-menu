@@ -11,12 +11,25 @@ import (
 // KitchenHandler muestra la vista de cocina
 func KitchenHandler(c *fiber.Ctx) error {
 	var orders []Order
-	db.Where("status IN (?)", []string{"pending", "in_progress"}).
+	// Solo mostrar órdenes con ítems pendientes de cocina
+	allOrders := []Order{}
+	db.Where("status IN (?)", []string{"pending", "in_progress", "ready"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
-		Find(&orders)
-
+		Find(&allOrders)
+	for _, o := range allOrders {
+		show := false
+		for _, item := range o.Items {
+			if !item.IsReady {
+				show = true
+				break
+			}
+		}
+		if show {
+			orders = append(orders, o)
+		}
+	}
 	return c.Render("kitchen", fiber.Map{
 		"Title":      "Cocina",
 		"ActivePage": "kitchen",
@@ -27,12 +40,24 @@ func KitchenHandler(c *fiber.Ctx) error {
 // GetKitchenOrders devuelve la lista actualizada de órdenes para la cocina
 func GetKitchenOrders(c *fiber.Ctx) error {
 	var orders []Order
-	db.Where("status IN (?)", []string{"pending", "in_progress"}).
+	allOrders := []Order{}
+	db.Where("status IN (?)", []string{"pending", "in_progress", "ready"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
-		Find(&orders)
-
+		Find(&allOrders)
+	for _, o := range allOrders {
+		show := false
+		for _, item := range o.Items {
+			if !item.IsReady {
+				show = true
+				break
+			}
+		}
+		if show {
+			orders = append(orders, o)
+		}
+	}
 	return c.Render("partials/kitchen_orders", fiber.Map{
 		"Orders": orders,
 	}, "")
@@ -143,11 +168,24 @@ func ToggleItemStatus(c *fiber.Ctx) error {
 
 	// Obtener órdenes pendientes actualizadas para actualizar la vista
 	var pendingOrders []Order
-	db.Where("status IN (?)", []string{"pending", "in_progress"}).
+	allOrders := []Order{}
+	db.Where("status IN (?)", []string{"pending", "in_progress", "ready"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
-		Find(&pendingOrders)
+		Find(&allOrders)
+	for _, o := range allOrders {
+		show := false
+		for _, item := range o.Items {
+			if !item.IsReady {
+				show = true
+				break
+			}
+		}
+		if show {
+			pendingOrders = append(pendingOrders, o)
+		}
+	}
 
 	// Devolver la vista actualizada
 	return c.Render("partials/kitchen_orders", fiber.Map{
@@ -216,11 +254,24 @@ func KitchenCompleteOrder(c *fiber.Ctx) error {
 
 	// Obtener órdenes pendientes actualizadas para actualizar la vista
 	var pendingOrders []Order
-	db.Where("status IN (?)", []string{"pending", "in_progress"}).
+	allOrders := []Order{}
+	db.Where("status IN (?)", []string{"pending", "in_progress", "ready"}).
 		Order("created_at asc").
 		Preload("Items").
 		Preload("Items.Product").
-		Find(&pendingOrders)
+		Find(&allOrders)
+	for _, o := range allOrders {
+		show := false
+		for _, item := range o.Items {
+			if !item.IsReady {
+				show = true
+				break
+			}
+		}
+		if show {
+			pendingOrders = append(pendingOrders, o)
+		}
+	}
 
 	c.Set("HX-Trigger", `{"showToast": "Orden #`+strconv.Itoa(id)+` completada correctamente"}`)
 

@@ -28,10 +28,20 @@ type Category struct {
 }
 
 // Orden contiene los detalles de la orden
+// Status puede ser:
+//   - "pending": Orden creada, aún no enviada a cocina
+//   - "in_progress": En preparación en cocina
+//   - "ready": Listo para entregar al cliente
+//   - "to_pay": Entregado, esperando pago
+//   - "completed": Pagada y cerrada
+//   - "cancelled": Cancelada
+//
+// El flujo es: pending -> in_progress -> ready -> to_pay -> completed
+// Se puede agregar productos en cualquier estado excepto completed/cancelled, pero sólo los nuevos ítems son editables antes de enviarse a cocina.
 type Order struct {
 	ID        uint           `json:"id" gorm:"primaryKey"`
 	TableNum  int            `json:"table_num"`
-	Status    string         `json:"status"` // "pending", "completed", "cancelled", NEW: -> "in_progress"
+	Status    string         `json:"status"` // "pending", "in_progress", "ready", "to_pay", "completed", "cancelled"
 	Total     float64        `json:"total"`
 	Items     []OrderItem    `json:"items" gorm:"foreignKey:OrderID"`
 	Notes     string         `json:"notes"`

@@ -39,12 +39,28 @@
             <i class="bi bi-arrow-right-circle me-2"></i>Enviar a Cocina
         </button>
         {{else if eq .Order.Status "in_progress"}}
-        <button class="btn macos-btn macos-btn-primary" hx-post="/order/{{.OrderID}}/complete" hx-swap="none"
-            hx-confirm="¿Está seguro de completar esta orden?" hx-indicator="#complete-indicator">
-            <span id="complete-indicator" class="htmx-indicator me-2">
+        <button class="btn macos-btn btn-info" hx-post="/order/{{.OrderID}}/ready" hx-swap="none"
+            hx-confirm="¿Marcar la orden como lista para entregar?" hx-indicator="#ready-indicator">
+            <span id="ready-indicator" class="htmx-indicator me-2">
                 <span class="spinner-border spinner-border-sm" role="status"></span>
             </span>
-            <i class="bi bi-check-circle me-2"></i>Completar Orden
+            <i class="bi bi-box-seam me-2"></i>Listo para entregar
+        </button>
+        {{else if eq .Order.Status "ready"}}
+        <button class="btn macos-btn btn-warning" hx-post="/order/{{.OrderID}}/to_pay" hx-swap="none"
+            hx-confirm="¿Marcar la orden como entregada y por cobrar?" hx-indicator="#to-pay-indicator">
+            <span id="to-pay-indicator" class="htmx-indicator me-2">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
+            <i class="bi bi-cash-coin me-2"></i>Por Cobrar
+        </button>
+        {{else if eq .Order.Status "to_pay"}}
+        <button class="btn macos-btn btn-success" hx-post="/order/{{.OrderID}}/complete_pay" hx-swap="none"
+            hx-confirm="¿Confirmar pago y cerrar la orden?" hx-indicator="#complete-pay-indicator">
+            <span id="complete-pay-indicator" class="htmx-indicator me-2">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </span>
+            <i class="bi bi-check2-circle me-2"></i>Marcar como Pagada
         </button>
         {{else if eq .Order.Status "completed"}}
         <button class="btn macos-btn btn-outline-secondary" hx-get="/history/report/{{.OrderID}}" hx-swap="none">
@@ -70,8 +86,14 @@
                         <span class="badge bg-info">En Preparación</span>
                         {{else if eq .Order.Status "cancelled"}}
                         <span class="badge bg-danger">Cancelada</span>
-                        {{else}}
+                        {{else if eq .Order.Status "ready"}}
+                        <span class="badge bg-primary">Listo para entregar</span>
+                        {{else if eq .Order.Status "to_pay"}}
+                        <span class="badge bg-warning text-dark">Por cobrar</span>
+                        {{else if eq .Order.Status "completed"}}
                         <span class="badge bg-success">Completada</span>
+                        {{else}}
+                        <span class="badge bg-secondary">Pendiente</span>
                         {{end}}
                     </div>
                     <div>

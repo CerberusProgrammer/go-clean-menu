@@ -70,6 +70,14 @@
         const msg = JSON.parse(event.data);
         if (msg.type === "kitchen_update") {
             htmx.ajax('GET', '/kitchen/orders', '#kitchen-orders');
+            showKitchenToast('¡Nueva orden o producto pendiente en cocina!');
+            setTimeout(() => {
+                const cards = document.querySelectorAll('.macos-card');
+                if (cards.length > 0) {
+                    cards[0].classList.add('animate__animated', 'animate__flash');
+                    setTimeout(() => cards[0].classList.remove('animate__flash'), 1500);
+                }
+            }, 500);
         }
     };
 </script>

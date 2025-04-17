@@ -301,7 +301,7 @@ func main() {
 	app.Get("/categories/list", GetCategoryList)
 
 	// Rutas para órdenes
-	app.Get("/orders", GetOrders)
+	app.Get("/orders", OrdersHandler)
 	app.Post("/orders/create", CreateOrder)
 	app.Get("/order/:id", GetOrder)
 	app.Post("/order/:id/complete", CompleteOrder)
@@ -312,6 +312,12 @@ func main() {
 	app.Delete("/order/:id/item/:itemId", RemoveItemFromOrder)
 	app.Put("/order/:id/notes", UpdateOrderNotes)
 	app.Get("/orders/metrics", GetOrderMetrics)
+	// Ruta para marcar orden como 'ready'
+	app.Post("/order/:id/ready", SetOrderReady)
+	// Ruta para marcar orden como 'to_pay'
+	app.Post("/order/:id/to_pay", SetOrderToPay)
+	// Ruta para marcar orden como 'completed' desde 'to_pay'
+	app.Post("/order/:id/complete_pay", SetOrderCompletedFromToPay)
 
 	// Rutas de Cocina
 	app.Get("/kitchen", KitchenHandler)

@@ -2,66 +2,47 @@
     <h5 class="mb-3">Órdenes en cocina</h5>
     <div class="row g-3">
         {{if .Orders}}
-        {{range .Orders}}
         <div class="macos-card mb-4">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Mesa {{.TableNum}} - Orden #{{.ID}}</h5>
-                <span class="badge {{if eq .Status " in_progress"}}bg-info{{else}}bg-warning text-dark{{end}}">
-                    {{if eq .Status "in_progress"}}En Proceso{{else}}Pendiente{{end}}
-                </span>
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Órdenes en cocina</h5>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    {{range .Items}}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{.Quantity}} × {{.Product.Name}}</strong>
-                            {{if .Notes}}<br><small class="text-muted">{{.Notes}}</small>{{end}}
-                            <div>
-                                {{if .CookingStarted}}
-                                <span id="cooking-timer-{{.ID}}" data-start="{{formatTimeJS .CookingStarted}}"
-                                    class="badge bg-light text-dark"></span>
-                                {{end}}
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            {{if .IsReady}}
-                            <span class="badge bg-success">Listo</span>
-                            {{else}}
-                            <button class="btn btn-sm btn-outline-success" hx-put="/kitchen/items/{{.ID}}/toggle"
-                                hx-target="closest .macos-card" hx-swap="outerHTML">
-                                <i class="bi bi-check-circle"></i> Marcar listo
-                            </button>
-                            {{end}}
-                        </div>
-                    </li>
-                    {{end}}
-                </ul>
-                <div class="mt-3">
-                    <div class="progress" style="height: 22px;">
-                        <div class="progress-bar bg-info" role="progressbar"
-                            style="width: {{calculateProgress .Items}}%;" aria-valuenow="{{calculateProgress .Items}}"
-                            aria-valuemin="0" aria-valuemax="100">
-                            {{calculateProgress .Items}}%
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="badge bg-info">Progreso: {{calculateProgress .Items}}%</span>
-                    </div>
-                    {{if and (eq .Status "in_progress") (eq (calculateProgress .Items) 100)}}
-                    <form method="POST" hx-post="/kitchen/order/{{.ID}}/complete" hx-target="closest .macos-card"
-                        hx-swap="outerHTML">
-                        <button class="btn btn-success">
-                            <i class="bi bi-check2-circle me-1"></i>Completar Orden
-                        </button>
-                    </form>
-                    {{end}}
-                </div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Notas</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Orders}}
+                        <tr>
+                            <td colspan="5" class="fw-bold">Mesa {{.TableNum}} - Orden #{{.ID}}</td>
+                        </tr>
+                        {{range $item := .Items}}
+                        {{if not $item.IsReady}}
+                        <tr class="table-warning">
+                            <td>{{$item.ID}}</td>
+                            <td>{{$item.Product.Name}}</td>
+                            <td>{{$item.Quantity}}</td>
+                            <td>{{if $item.Notes}}<span class="text-muted small">{{$item.Notes}}</span>{{end}}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success" hx-put="/kitchen/items/{{$item.ID}}/toggle"
+                                    hx-target="closest tr" hx-swap="outerHTML">
+                                    <i class="bi bi-check-circle"></i> Marcar listo
+                                </button>
+                            </td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
             </div>
         </div>
-        {{end}}
         {{else}}
         <div class="macos-card p-5 text-center">
             <i class="bi bi-fire fs-1 text-secondary"></i>
