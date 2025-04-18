@@ -1,0 +1,221 @@
+<!-- Dashboard visual, moderno y con acciones rápidas, métricas y gráficos -->
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <h1 class="page-title m-0"><i class="bi bi-speedometer2"></i> Panel de Control</h1>
+    <div>
+        <a href="/orders" class="btn macos-btn macos-btn-primary me-2"><i class="bi bi-plus-circle me-2"></i>Nueva Orden</a>
+        <a href="/menu" class="btn macos-btn btn-outline-primary me-2"><i class="bi bi-journal-text me-2"></i>Menú</a>
+        <a href="/tables" class="btn macos-btn btn-outline-secondary me-2"><i class="bi bi-grid-3x3 me-2"></i>Mesas</a>
+        <a href="/history" class="btn macos-btn btn-outline-info"><i class="bi bi-clock-history me-2"></i>Historial</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1"><i class="bi bi-receipt text-primary me-2"></i>{{.Stats.ActiveOrders}}</h2>
+            <p class="mb-0">Órdenes activas</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1 text-success"><i class="bi bi-currency-dollar me-2"></i>${{printf "%.2f" .Stats.TodaySales}}</h2>
+            <p class="mb-0">Ventas de hoy</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1"><i class="bi bi-award text-warning me-2"></i>{{.Stats.TopCategory}}</h2>
+            <p class="mb-0">Categoría popular</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1"><i class="bi bi-grid-3x3 text-info me-2"></i>{{.Stats.OccupiedTables}} <span class="text-muted">/ {{.Stats.TotalProducts}}</span></h2>
+            <p class="mb-0">Mesas ocupadas / Productos</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1 text-info"><i class="bi bi-people me-2"></i>{{.Stats.TotalClients}}</h2>
+            <p class="mb-0">Clientes atendidos hoy</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1 text-danger"><i class="bi bi-x-octagon me-2"></i>{{.Stats.CancelledOrders}}</h2>
+            <p class="mb-0">Órdenes canceladas</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1 text-warning"><i class="bi bi-clock-history me-2"></i>{{.Stats.AvgOrderTime}} min</h2>
+            <p class="mb-0">Tiempo promedio por orden</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="macos-card stats-card text-center">
+            <h2 class="mb-1 text-success"><i class="bi bi-graph-up-arrow me-2"></i>{{.Stats.BestHour}}</h2>
+            <p class="mb-0">Hora pico de ventas</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="macos-card p-3">
+            <h5 class="mb-3">Ventas últimos 7 días</h5>
+            <canvas id="salesChart" height="200"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="macos-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="m-0">Productos populares</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                {{range .PopularProducts}}
+                <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center">
+                    <span>{{.Name}}</span>
+                    <span class="badge bg-primary rounded-pill">{{.OrderCount}}</span>
+                </li>
+                {{end}}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="macos-card p-3">
+            <h5 class="mb-3">Órdenes por estado</h5>
+            <canvas id="ordersStatusChart" height="180"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="macos-card p-3">
+            <h5 class="mb-3">Ventas por categoría</h5>
+            <canvas id="salesByCategoryChart" height="180"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="macos-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="m-0">Órdenes recientes</h5>
+                <a href="/orders" class="btn macos-btn btn-sm">Ver todas</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Mesa</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .RecentOrders}}
+                        <tr>
+                            <td><a href="/order/{{.ID}}">#{{.ID}}</a></td>
+                            <td>Mesa {{.TableNum}}</td>
+                            <td>{{.ItemCount}} items</td>
+                            <td>${{printf "%.2f" .Total}}</td>
+                            <td>
+                                {{if eq .Status "pending"}}
+                                <span class="badge bg-warning">Pendiente</span>
+                                {{else if eq .Status "in_progress"}}
+                                <span class="badge bg-info">En Proceso</span>
+                                {{else if eq .Status "ready"}}
+                                <span class="badge bg-primary">Listo</span>
+                                {{else if eq .Status "to_pay"}}
+                                <span class="badge bg-warning text-dark">Por cobrar</span>
+                                {{else if eq .Status "completed"}}
+                                <span class="badge bg-success">Completada</span>
+                                {{else}}
+                                <span class="badge bg-danger">Cancelada</span>
+                                {{end}}
+                            </td>
+                            <td>{{formatTime .CreatedAt}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de ventas
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [{{range $index, $label := .ChartLabels}}{{if $index}}, {{end}}"{{$label}}"{{end}}],
+            datasets: [{
+                label: 'Ventas ($)',
+                data: [{{range $index, $value := .ChartValues}}{{if $index}}, {{end}}{{$value}}{{end}}],
+                borderColor: '#0071e3',
+                backgroundColor: 'rgba(0, 113, 227, 0.1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de órdenes por estado
+    new Chart(document.getElementById('ordersStatusChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ["Activas", "Completadas", "Canceladas"],
+            datasets: [{
+                data: [{{.Stats.ActiveOrders}}, {{.Stats.CompletedOrders}}, {{.Stats.CancelledOrders}}],
+                backgroundColor: [
+                    'rgba(0, 113, 227, 0.7)',
+                    'rgba(52, 199, 89, 0.7)',
+                    'rgba(255, 59, 48, 0.7)'
+                ]
+            }]
+        },
+        options: {responsive: true, cutout: 60}
+    });
+
+    // Gráfico de ventas por categoría
+    new Chart(document.getElementById('salesByCategoryChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: [{{range $i, $cat := .Stats.Categories}}{{if $i}}, {{end}}"{{$cat.Name}}"{{end}}],
+            datasets: [{
+                label: 'Ventas',
+                data: [{{range $i, $cat := .Stats.Categories}}{{if $i}}, {{end}}{{$cat.Sales}}{{end}}],
+                backgroundColor: 'rgba(0, 113, 227, 0.2)',
+                borderColor: '#0071e3',
+                borderWidth: 2
+            }]
+        },
+        options: {responsive: true, indexAxis: 'y'}
+    });
+</script>
